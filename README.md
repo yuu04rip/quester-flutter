@@ -1,39 +1,17 @@
-# Quester – Progetto Mobile (Flutter)
+# quester_flutter
 
-## Descrizione del progetto
-**Quester** è un'app mobile pensata per supportare l’utente nella gestione delle attività quotidiane attraverso un approccio motivazionale basato sulla gamification.
+A new Flutter project.
 
-L’app trasforma compiti e obiettivi in missioni da completare, con progressi visibili e ricompense virtuali, per rendere più semplice mantenere costanza e produttività.
+## Getting Started
 
-## Obiettivo
-L’obiettivo di questa versione è sviluppare un’app in **Flutter** che implementi un sottoinsieme coerente delle funzionalità principali del progetto Quester.
+This project is a starting point for a Flutter application.
 
-## Funzionalità previste (versione iniziale)
-Funzionalità candidate per la versione Flutter:
+A few resources to get you started if this is your first Flutter project:
 
-- Gestione base dell’account utente
-- Visualizzazione elenco missioni
-- Dettaglio missione con stato avanzamento
-- Completamento task/sotto-task
-- Sistema base di XP e livello utente
-- Dashboard semplificata dei progressi
+- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
+- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
 
-> Nota: la versione Flutter rappresenta una versione ridotta rispetto a quella Kotlin/Android, in linea con i requisiti del corso.
-
-## Stato del progetto
-🚧 **Work in progress**  
-Repository in fase iniziale: analisi, progettazione e impostazione della struttura del progetto.
-
-## Contesto accademico
-Progetto realizzato per l’esame di **Programmazione Mobile**.
-
-## Team
-- Giovanni De Luca
-- Gabriele Di Carlo
-
-## Note
-Questa README verrà aggiornata durante lo sviluppo con:
-- struttura delle cartelle
-- istruzioni per esecuzione/build
-- funzionalità effettivamente implementate
-- screenshot/mockup
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
