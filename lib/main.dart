@@ -216,6 +216,10 @@ class _QuesterAppState extends State<QuesterApp> {
           shopDao: widget.shopDao,
         ),
         sessionManager: widget.sessionManager,
+        onLogout: () {
+          // ✅ Torna alla schermata di login
+          setState(() => _isLoggedIn = false);
+        },
       )
           : AuthScreen(
         authService: widget.authService,

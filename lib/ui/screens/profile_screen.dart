@@ -8,6 +8,8 @@ import '/data/session/session_manager.dart';
 import '../theme/colors.dart';
 import 'profile_components.dart';
 import 'profile_constants.dart';
+import '/widgets/avatar_view.dart';
+import '/widgets/magic_burst_button.dart';  // ✅ Import per MagicBurstButton
 
 /// Callback per le azioni del profilo
 class ProfileCallbacks {
@@ -44,6 +46,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   User? _user;
   List<OwnedCosmetic> _ownedCosmetics = [];
+  AvatarCosmetics _equippedCosmetics = const AvatarCosmetics();
   bool _isLoading = true;
 
   @override
@@ -59,10 +62,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final user = await widget.userRepository.getUserById(userId);
     final owned = await widget.userRepository.getOwnedCosmetics(userId);
+    final equipped = await widget.userRepository.getEquippedCosmetics(userId);
+    final displayCosmetics = AvatarCosmetics(
+      hat: equipped.hat,
+      weapon: equipped.weapon,
+      frame: equipped.frame == FrameType.none ? FrameType.basic : equipped.frame,
+    );
 
     setState(() {
       _user = user;
       _ownedCosmetics = owned;
+      _equippedCosmetics = equipped;
+      _equippedCosmetics = displayCosmetics;
       _isLoading = false;
     });
   }
@@ -85,7 +96,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 16),
           _buildOwnedCosmetics(context),
           const SizedBox(height: 16),
-          _buildLogoutButton(context),
+          // ✅ Pulsante logout con MagicBurstButton
+          MagicBurstButton(
+            text: 'ESCI DAL REGNO',
+            loading: false,
+            onClickAfterEffect: () async {
+              widget.callbacks.onLogout();
+            },
+          ),
           const SizedBox(height: 8),
           _buildDeleteButton(context),
         ],
@@ -111,25 +129,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // Avatar (placeholder)
+            // ✅ Avatar reale con cosmetici
             GestureDetector(
               onTap: widget.callbacks.onShowCustomization,
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.colorScheme.primaryContainer,
-                  border: Border.all(
-                    color: theme.colorScheme.secondary,
-                    width: 2,
-                  ),
-                ),
-                child: Icon(
-                  Icons.person,
-                  size: 60,
-                  color: theme.colorScheme.secondary,
-                ),
+              child: AvatarView(
+                cosmetics: _equippedCosmetics,
+                size: 140,
+                scale: 1.2,
+                verticalOffset: 4,
               ),
             ),
             const SizedBox(height: 12),
@@ -318,28 +325,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Icons.auto_awesome,
           color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           size: 32,
-        ),
-      ),
-    );
-  }
-
-  /// Pulsante logout
-  Widget _buildLogoutButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: widget.callbacks.onLogout,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: FantasyGold,
-          foregroundColor: FantasyBackground,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: const Text(
-          'ESCI DAL REGNO',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
       ),
     );

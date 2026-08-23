@@ -10,9 +10,12 @@ class UserDao {
 
   // Insert utente
   Future<int> insertUser(User user) async {
+    final map = user.toMap();
+    map.remove('id');  // ✅ Rimuovi id — il DB lo auto-genera!
+
     return await db.insert(
       'users',
-      user.toMap(),
+      map,
       conflictAlgorithm: ConflictAlgorithm.abort,
     );
   }

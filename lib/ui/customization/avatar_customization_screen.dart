@@ -5,6 +5,7 @@ import '/repository/user_repository.dart';
 import '../theme/app_theme.dart';
 import '../theme/colors.dart';
 import '/utils/cosmetic_id_mapper.dart';
+import '/widgets/avatar_view.dart';
 
 /// Schermata personalizzazione avatar
 class AvatarCustomizationScreen extends StatefulWidget {
@@ -41,6 +42,13 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
         : widget.initialCosmetics.frame;
   }
 
+  /// Cosmetici attualmente selezionati
+  AvatarCosmetics get _currentCosmetics => AvatarCosmetics(
+    hat: _selectedHat,
+    weapon: _selectedWeapon,
+    frame: _selectedFrame,
+  );
+
   /// Verifica se ci sono modifiche
   bool get _hasChanges {
     return _selectedHat != widget.initialCosmetics.hat ||
@@ -61,12 +69,7 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
 
   /// Salva le modifiche
   void _save() {
-    final cosmetics = AvatarCosmetics(
-      hat: _selectedHat,
-      weapon: _selectedWeapon,
-      frame: _selectedFrame,
-    );
-    widget.onSave(cosmetics);
+    widget.onSave(_currentCosmetics);
   }
 
   @override
@@ -145,26 +148,49 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
     );
   }
 
-  /// Anteprima avatar
+  /// ✅ Anteprima avatar artistica e rifinita (Stile Fantasy/Arcade)
   Widget _buildAvatarPreview(BuildContext context, bool isArcade, Color accentColor) {
     return Center(
       child: Container(
         width: 210,
         height: 210,
         decoration: BoxDecoration(
-          color: (isArcade ? const Color(0xFF111119) : FantasySurface)
-              .withValues(alpha: 0.94),
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: accentColor.withValues(alpha: 0.55),
-            width: 1.5,
+          shape: BoxShape.circle,
+          gradient: SweepGradient(
+            colors: isArcade
+                ? [const Color(0xFF00FF66), const Color(0xFF003311), const Color(0xFF00FF66)]
+                : [const Color(0xFF5C4033), const Color(0xFFFFD700), const Color(0xFF8B6508), const Color(0xFF5C4033)],
           ),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.4),
+              blurRadius: 18,
+              spreadRadius: 3,
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.6),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-        child: Center(
-          child: Icon(
-            Icons.person,
-            size: 120,
-            color: accentColor.withValues(alpha: 0.7),
+        child: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isArcade ? const Color(0xFF0A0A12) : const Color(0xFF140D07),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.6),
+              width: 2,
+            ),
+          ),
+          child: Center(
+            child: AvatarView(
+              cosmetics: _currentCosmetics,
+              size: 170,
+              scale: 1.5,
+              verticalOffset: 4,
+            ),
           ),
         ),
       ),
@@ -187,15 +213,57 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildSelectionBadge('Copricapo', _selectedHat.name, isArcade),
+            _buildSelectionBadge('Copricapo', _getHatDisplayName(), isArcade),
             _buildDivider(isArcade),
-            _buildSelectionBadge('Arma', _selectedWeapon.name, isArcade),
+            _buildSelectionBadge('Arma', _getWeaponDisplayName(), isArcade),
             _buildDivider(isArcade),
-            _buildSelectionBadge('Cornice', _selectedFrame.name, isArcade),
+            _buildSelectionBadge('Cornice', _getFrameDisplayName(), isArcade),
           ],
         ),
       ),
     );
+  }
+
+  /// Nome visualizzato cappello
+  String _getHatDisplayName() {
+    switch (_selectedHat) {
+      case HatType.none:
+        return 'Nessuno';
+      case HatType.mago:
+        return 'Cap. Mago';
+      case HatType.scifi:
+        return 'Vis. Futur.';
+    }
+  }
+
+  /// Nome visualizzato arma
+  String _getWeaponDisplayName() {
+    switch (_selectedWeapon) {
+      case WeaponType.none:
+        return 'Nessuna';
+      case WeaponType.staff:
+        return 'Bastone';
+      case WeaponType.sword:
+        return 'Spada';
+      case WeaponType.gun:
+        return 'Pistola';
+    }
+  }
+
+  /// Nome visualizzato cornice
+  String _getFrameDisplayName() {
+    switch (_selectedFrame) {
+      case FrameType.none:
+        return 'Nessuna';
+      case FrameType.basic:
+        return 'Base';
+      case FrameType.mago:
+        return 'Mago';
+      case FrameType.cavaliere:
+        return 'Caval.';
+      case FrameType.scifi:
+        return 'Sci-Fi';
+    }
   }
 
   Widget _buildSelectionBadge(String label, String value, bool isArcade) {
@@ -329,7 +397,7 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
                 children: options.map((option) {
                   final selected = isSelected(option);
                   final owned = isOwned(option);
-                  final name = option.toString().split('.').last;
+                  final name = _getOptionDisplayName(option);
 
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -350,6 +418,47 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
         ),
       ),
     );
+  }
+
+  /// Nome visualizzato per l'opzione
+  String _getOptionDisplayName(dynamic option) {
+    if (option is HatType) {
+      switch (option) {
+        case HatType.mago:
+          return 'Cap. Mago';
+        case HatType.scifi:
+          return 'Vis. Futur.';
+        default:
+          return option.name;
+      }
+    }
+    if (option is WeaponType) {
+      switch (option) {
+        case WeaponType.staff:
+          return 'Bastone';
+        case WeaponType.sword:
+          return 'Spada';
+        case WeaponType.gun:
+          return 'Pistola';
+        default:
+          return option.name;
+      }
+    }
+    if (option is FrameType) {
+      switch (option) {
+        case FrameType.basic:
+          return 'Base';
+        case FrameType.mago:
+          return 'Mago';
+        case FrameType.cavaliere:
+          return 'Caval.';
+        case FrameType.scifi:
+          return 'Sci-Fi';
+        default:
+          return option.name;
+      }
+    }
+    return option.toString().split('.').last;
   }
 
   /// Chip opzione
@@ -376,29 +485,32 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
 
     return GestureDetector(
       onTap: isLocked ? null : onClick,
-      child: Container(
-        width: 100,
-        height: 44,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: borderColor,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            displayName,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected
-                  ? (isArcade ? const Color(0xFF66FF66) : FantasyGoldLight)
-                  : (isArcade ? const Color(0xFF66FF66) : FantasyTextSecondary),
+      child: Opacity(
+        opacity: isLocked ? 0.38 : 1.0,
+        child: Container(
+          width: 100,
+          height: 44,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: borderColor,
+              width: isSelected ? 1.5 : 1,
             ),
-            maxLines: 2,
-            textAlign: TextAlign.center,
+          ),
+          child: Center(
+            child: Text(
+              displayName,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? (isArcade ? const Color(0xFF66FF66) : FantasyGoldLight)
+                    : (isArcade ? const Color(0xFF66FF66) : FantasyTextSecondary),
+              ),
+              maxLines: 2,
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ),

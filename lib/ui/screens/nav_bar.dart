@@ -10,9 +10,9 @@ import '/domain/service/mission_service.dart';
 import '/domain/service/shop_service.dart';
 import 'nav_screens.dart';
 import 'profile_screen.dart';
-import 'mission/mission_list_screen.dart';
+import '../screens/mission/mission_list_screen.dart';
 import 'shop_screen.dart';
-import '/ui/customization/avatar_customization_screen.dart';  // ✅ Import aggiuntoo
+import '../customization/avatar_customization_screen.dart';
 
 /// Servizi necessari per la navigazione
 class NavServices {
@@ -45,12 +45,14 @@ class NavBar extends StatefulWidget {
   final NavServices services;
   final NavRepositories repositories;
   final SessionManager sessionManager;
+  final VoidCallback onLogout;  // ✅ Callback per il logout
 
   const NavBar({
     super.key,
     required this.services,
     required this.repositories,
     required this.sessionManager,
+    required this.onLogout,  // ✅ Obbligatorio
   });
 
   @override
@@ -58,7 +60,7 @@ class NavBar extends StatefulWidget {
 }
 
 class _NavBarState extends State<NavBar> {
-  int _currentIndex = 1; // Inizia su "Missioni"
+  int _currentIndex = 1;
   bool _showCustomization = false;
 
   @override
@@ -88,17 +90,57 @@ class _NavBarState extends State<NavBar> {
     );
   }
 
-  /// ✅ Personalizzazione avatar (schermata reale)
+  /// ✅ Personalizzazione avatar con dati reali
   Widget _buildCustomization() {
-    return AvatarCustomizationScreen(
-      initialCosmetics: const AvatarCosmetics(),
-      ownedItemIds: {},
-      onBack: () {
-        setState(() => _showCustomization = false);
+    return FutureBuilder<({AvatarCosmetics cosmetics, Set<String> ownedIds})>(
+      future: _loadCosmeticData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return const Center(child: Text('Errore caricamento dati'));
+        }
+
+        final data = snapshot.data!;
+        return AvatarCustomizationScreen(
+          initialCosmetics: data.cosmetics,
+          ownedItemIds: data.ownedIds,
+          onBack: () {
+            setState(() => _showCustomization = false);
+          },
+          onSave: (cosmetics) async {
+            final userId = await widget.sessionManager.loggedUserId();
+            if (userId != null) {
+              await widget.repositories.userRepository
+                  .saveEquippedCosmetics(userId, cosmetics);
+            }
+            if (mounted) {
+              setState(() => _showCustomization = false);
+            }
+          },
+        );
       },
-      onSave: (cosmetics) {
-        setState(() => _showCustomization = false);
-      },
+    );
+  }
+
+  /// ✅ Carica i dati reali dei cosmetici
+  Future<({AvatarCosmetics cosmetics, Set<String> ownedIds})>
+  _loadCosmeticData() async {
+    final userId = await widget.sessionManager.loggedUserId();
+    if (userId == null) {
+      return (cosmetics: const AvatarCosmetics(), ownedIds: <String>{});
+    }
+
+    final cosmetics = await widget.repositories.userRepository
+        .getEquippedCosmetics(userId);
+    final owned = await widget.repositories.userRepository
+        .getOwnedCosmetics(userId);
+
+    return (
+    cosmetics: cosmetics,
+    ownedIds: owned.map((o) => o.itemId).toSet().cast<String>(),
     );
   }
 
@@ -112,9 +154,11 @@ class _NavBarState extends State<NavBar> {
           callbacks: ProfileCallbacks(
             onLogout: () async {
               await widget.services.authService.logout();
+              widget.onLogout();  // ✅ Torna al login
             },
             onDeleteAccount: () async {
               await widget.services.authService.deleteAccount();
+              widget.onLogout();  // ✅ Torna al login
             },
             onUpdateUsername: (newUsername) async {
               await widget.services.authService.updateUsername(newUsername);

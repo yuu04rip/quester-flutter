@@ -4,8 +4,6 @@ import '../../data/session/session_manager.dart';
 import '/repository/auth_repository.dart';
 import '/repository/user_repository.dart';
 
-// NON ridefinire AuthResult! Usa quello del repository.
-
 class AuthService {
   final SessionManager sessionManager;
   final AuthRepository authRepository;
@@ -32,7 +30,7 @@ class AuthService {
 
     if (result is AuthSuccess) {
       await sessionManager.clearSession();
-      await sessionManager.createSession(result.user.id);  // ✅ user.id, non userId
+      await sessionManager.createSession(result.user.id);
     }
 
     return result;
@@ -49,7 +47,7 @@ class AuthService {
 
     if (result is AuthSuccess) {
       await sessionManager.clearSession();
-      await sessionManager.createSession(result.user.id);  // ✅ user.id, non userId
+      await sessionManager.createSession(result.user.id);
     }
 
     return result;

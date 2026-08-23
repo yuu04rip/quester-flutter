@@ -39,7 +39,7 @@ class FantasyXpProgress extends StatelessWidget {
           child: LinearProgressIndicator(
             value: xpProgress,
             minHeight: 12,
-            backgroundColor: FantasyPurpleDark.withOpacity(0.5),
+            backgroundColor: FantasyPurpleDark.withValues(alpha: 0.5),
             valueColor: AlwaysStoppedAnimation<Color>(FantasyGold),
           ),
         ),
@@ -69,11 +69,11 @@ class FantasyStatItem extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: 28),
         Text(value,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white)),
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
       ],
     );
   }
@@ -89,13 +89,18 @@ class FantasyCoinStatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(Icons.monetization_on, color: FantasyGold, size: 28),
+        // ✅ Usa coin.png
+        Image.asset(
+          'assets/images/coin.png',
+          width: 28,
+          height: 28,
+        ),
         Text(value,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: FantasyGold)),
-        Text('MONETE', style: TextStyle(fontSize: 10, color: Colors.grey)),
+        Text('MONETE', style: const TextStyle(fontSize: 10, color: Colors.grey)),
       ],
     );
   }

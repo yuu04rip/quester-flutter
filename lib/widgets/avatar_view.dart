@@ -2,8 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '/repository/user_repository.dart';
-import 'frame_basic.dart';
-import 'frame_scifi.dart';
+import 'frame_basic.dart'; // Assicurati di importare il file della cornice!
 
 /// Vista avatar con cosmetici
 class AvatarView extends StatelessWidget {
@@ -24,114 +23,87 @@ class AvatarView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarContent = _buildAvatarContent();
-
-    return GestureDetector(
-      onTap: onClick,
-      child: _buildFrame(avatarContent),
-    );
-  }
-
-  /// Costruisce il contenuto dell'avatar
-  Widget _buildAvatarContent() {
-    return Transform.scale(
-      scale: scale,
-      child: Transform.translate(
-        offset: Offset(0, verticalOffset),
-        child: Stack(
-          children: [
-            // Arma
-            Positioned.fill(
-              child: Image.asset(
-                cosmetics.weapon == WeaponType.gun
-                    ? 'assets/images/char_weapon_laser.png'
-                    : 'assets/images/char_weapon_wood.png',
-                fit: BoxFit.contain,
+    // Contenuto interno dell'avatar (il personaggio con vestiti, armi, ecc.)
+    final Widget characterContent = ClipOval(
+      child: Transform.scale(
+        scale: scale,
+        child: Transform.translate(
+          offset: Offset(0, verticalOffset),
+          child: Stack(
+            children: [
+              // Arma
+              Positioned.fill(
+                child: Image.asset(
+                  cosmetics.weapon == WeaponType.gun
+                      ? 'assets/images/char_weapon_laser.png'
+                      : 'assets/images/char_weapon_wood.png',
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-            // Corpo
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/char_body.png',
-                fit: BoxFit.contain,
+              // Corpo
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/char_body.png',
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-            // Vestito
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/char_outfit.png',
-                fit: BoxFit.contain,
+              // Vestito
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/char_outfit.png',
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-            // Cappello
-            Positioned.fill(
-              child: Image.asset(
-                cosmetics.hat == HatType.scifi
-                    ? 'assets/images/char_visor.png'
-                    : 'assets/images/char_hat.png',
-                fit: BoxFit.contain,
+              // Cappello
+              Positioned.fill(
+                child: Image.asset(
+                  cosmetics.hat == HatType.scifi
+                      ? 'assets/images/char_visor.png'
+                      : 'assets/images/char_hat.png',
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+
+    return GestureDetector(
+      onTap: onClick,
+      child: _buildFrameWrapper(characterContent),
+    );
   }
 
-  /// Costruisce la cornice in base al tipo
-  Widget _buildFrame(Widget child) {
+  /// Seleziona la cornice corretta in base al tipo equipaggiato
+  Widget _buildFrameWrapper(Widget child) {
     switch (cosmetics.frame) {
       case FrameType.basic:
-        return FrameBasic(child: child, size: size);
-      case FrameType.scifi:
-        return FrameSciFi(child: child, size: size);
+      case FrameType.cavaliere: // Puoi usare FrameBasic anche per cavaliere o personalizzarlo
+        return FrameBasic(size: size, child: child);
+
       case FrameType.mago:
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFF6B4C9A), // Viola
-              width: 4,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6B4C9A).withValues(alpha: 0.4),
-                blurRadius: 12,
-              ),
-            ],
-          ),
-          child: ClipOval(child: child),
-        );
-      case FrameType.cavaliere:
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFFD4AF37), // Oro
-              width: 4,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
-                blurRadius: 12,
-              ),
-            ],
-          ),
-          child: ClipOval(child: child),
-        );
+      // Qui potrai mettere un domani FrameMago, per ora usa FrameBasic o un fallback
+        return FrameBasic(size: size, child: child);
+
+      case FrameType.scifi:
+      // Qui potrai mettere un domani FrameScifi
+        return FrameBasic(size: size, child: child);
+
       case FrameType.none:
+      default:
         return Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xFF1E1B2E),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 2,
+            ),
           ),
-          child: ClipOval(child: child),
+          child: child,
         );
     }
   }

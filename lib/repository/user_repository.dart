@@ -214,13 +214,14 @@ class UserRepository {
 
   /// Parser per Frame
   FrameType _parseFrame(String? value) {
-    if (value == null || value.isEmpty || value.contains('NONE')) return FrameType.none;
+    if (value == null || value.isEmpty || value.contains('NONE')) {
+      return FrameType.basic;
+    }
     return FrameType.values.firstWhere(
           (e) => e.name == value.toLowerCase(),
-      orElse: () => FrameType.none,
+      orElse: () => FrameType.basic,
     );
   }
-
   /// Elimina tutti i dati
   Future<void> deleteUserAndProgress() async {
     await userDao.deleteAllUsers();

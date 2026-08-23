@@ -1,11 +1,10 @@
 // lib/screens/auth_screen.dart
 
 import 'package:flutter/material.dart';
+import '../../widgets/magic_burst_button.dart';
 import '/repository/auth_repository.dart';
 import '/domain/service/auth_service.dart';
-import '/presentation/auth/auth_view_model.dart';
 import '/utils/string_utils.dart';
-import '../theme/colors.dart';
 
 /// Schermata di autenticazione (login/registrazione)
 class AuthScreen extends StatefulWidget {
@@ -23,37 +22,26 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  late final AuthViewModel _viewModel;
-
-  // Controllers per i campi di testo
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Stato locale
   bool _isRegisterMode = false;
   bool _passwordVisible = false;
+  bool _isLoading = false;
   String? _usernameError;
   String? _emailError;
   String? _passwordError;
   String? _errorMessage;
 
   @override
-  void initState() {
-    super.initState();
-    _viewModel = AuthViewModel(authService: widget.authService);
-  }
-
-  @override
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _viewModel.dispose();
     super.dispose();
   }
 
-  /// Validazione dei campi
   bool _validate() {
     setState(() {
       _usernameError = _validateIdentity(_usernameController.text.trim());
@@ -64,7 +52,6 @@ class _AuthScreenState extends State<AuthScreen> {
     return _usernameError == null && _emailError == null && _passwordError == null;
   }
 
-  /// Validazione identità
   String? _validateIdentity(String identity) {
     if (identity.isEmpty) {
       return _isRegisterMode ? 'Username obbligatorio' : 'Username o email obbligatorio';
@@ -75,7 +62,6 @@ class _AuthScreenState extends State<AuthScreen> {
     return null;
   }
 
-  /// Validazione email
   String? _validateEmail(String email) {
     if (_isRegisterMode && email.isNotEmpty) {
       final emailRegex = RegExp(r'^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$');
@@ -86,7 +72,6 @@ class _AuthScreenState extends State<AuthScreen> {
     return null;
   }
 
-  /// Validazione password
   String? _validatePassword(String password) {
     if (password.isEmpty) return 'Password obbligatoria';
     if (password.length < 8) return 'Password troppo corta (minimo 8 caratteri)';
@@ -95,7 +80,6 @@ class _AuthScreenState extends State<AuthScreen> {
     return null;
   }
 
-  /// Converte errori in messaggi fantasy
   String _toFantasyError(String? message) {
     if (message == null || message.isEmpty) {
       return '✦ Un oscuro incantesimo ha interrotto il rituale.';
@@ -118,30 +102,43 @@ class _AuthScreenState extends State<AuthScreen> {
     return '✦ $message';
   }
 
-  /// Gestione autenticazione
+  /// ✅ Gestione autenticazione corretta
   Future<void> _handleAuth() async {
     if (!_validate()) return;
 
-    setState(() => _errorMessage = null);
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
+    AuthResult result;
 
     if (_isRegisterMode) {
       final capitalizedUsername = StringUtils.capitalizeFirstLetter(_usernameController.text.trim());
-      await _viewModel.register(
+      result = await widget.authService.register(
         capitalizedUsername,
         _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
         _passwordController.text,
       );
     } else {
-      await _viewModel.login(
+      result = await widget.authService.login(
         _usernameController.text.trim(),
         _passwordController.text,
       );
     }
 
-    if (_viewModel.uiState.error != null) {
-      setState(() => _errorMessage = _viewModel.uiState.error);
-    } else if (_viewModel.uiState.isAuthenticated) {
-      widget.onAuthSuccess();
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    // ✅ Usa switch con pattern matching (Dart 3)
+    switch (result) {
+      case AuthSuccess():
+        widget.onAuthSuccess();
+        break;
+      case AuthError(:final message):
+        setState(() => _errorMessage = message);
+        break;
     }
   }
 
@@ -158,7 +155,7 @@ class _AuthScreenState extends State<AuthScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
               side: BorderSide(
-                color: theme.colorScheme.primary.withOpacity(0.65),
+                color: theme.colorScheme.primary.withValues(alpha: 0.65),
                 width: 2,
               ),
             ),
@@ -169,7 +166,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   _buildHeader(theme),
                   const SizedBox(height: 16),
-                  Divider(color: theme.colorScheme.secondary.withOpacity(0.35)),
+                  Divider(color: theme.colorScheme.secondary.withValues(alpha: 0.35)),
                   const SizedBox(height: 16),
                   _buildForm(theme),
                   if (_errorMessage != null) ...[
@@ -187,7 +184,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  /// Header con icona e titolo
   Widget _buildHeader(ThemeData theme) {
     return Column(
       children: [
@@ -227,7 +223,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  /// Form di autenticazione
   Widget _buildForm(ThemeData theme) {
     return Column(
       children: [
@@ -253,7 +248,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  /// Campo di testo personalizzato
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -277,22 +271,13 @@ class _AuthScreenState extends State<AuthScreen> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: theme.colorScheme.secondary.withOpacity(0.35),
+            color: theme.colorScheme.secondary.withValues(alpha: 0.35),
           ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
         ),
       ),
     );
   }
 
-  /// Campo password con toggle visibilità
   Widget _buildPasswordField(ThemeData theme) {
     return TextField(
       controller: _passwordController,
@@ -310,16 +295,8 @@ class _AuthScreenState extends State<AuthScreen> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: theme.colorScheme.secondary.withOpacity(0.35),
+            color: theme.colorScheme.secondary.withValues(alpha: 0.35),
           ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
         ),
         suffixIcon: IconButton(
           icon: Icon(
@@ -333,20 +310,11 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  /// Card per i messaggi di errore
   Widget _buildErrorCard(String error, ThemeData theme) {
-    final isCredentialsError = error.contains('Le chiavi del portale non coincidono');
-
     return Card(
-      color: theme.colorScheme.errorContainer.withOpacity(0.9),
+      color: theme.colorScheme.errorContainer.withValues(alpha: 0.9),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isCredentialsError
-              ? Colors.white.withOpacity(0.5)
-              : theme.colorScheme.error.withOpacity(0.75),
-          width: 1,
-        ),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -354,39 +322,23 @@ class _AuthScreenState extends State<AuthScreen> {
           error,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: isCredentialsError
-                ? Colors.white
-                : theme.colorScheme.onErrorContainer,
+            color: theme.colorScheme.onErrorContainer,
           ),
         ),
       ),
     );
   }
 
-  /// Bottoni di azione
   Widget _buildButtons(ThemeData theme) {
     return Column(
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _handleAuth,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.secondary,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              _isRegisterMode ? 'INIZIA L\'AVVENTURA' : 'ENTRA NEL REGNO',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
+        // ✅ Usa MagicBurstButton invece di ElevatedButton
+        MagicBurstButton(
+          text: _isRegisterMode ? 'INIZIA L\'AVVENTURA' : 'ENTRA NEL REGNO',
+          loading: _isLoading,
+          onClickAfterEffect: () {
+            _handleAuth();  // ✅ Chiama _handleAuth
+          },
         ),
         const SizedBox(height: 10),
         TextButton(

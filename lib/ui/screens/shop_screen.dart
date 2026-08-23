@@ -6,7 +6,7 @@ import '/data/models/shop_item.dart';
 import '/repository/user_repository.dart';
 import '/data/session/session_manager.dart';
 import '/domain/service/shop_service.dart';
-import '/ui/theme/colors.dart';
+import '../theme/colors.dart';
 
 /// Schermata negozio
 class ShopScreen extends StatefulWidget {
@@ -153,7 +153,7 @@ class _ShopScreenState extends State<ShopScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.75,  // ✅ Fix overflow
       ),
       itemCount: _shopItems.length,
       itemBuilder: (context, index) {
@@ -180,12 +180,13 @@ class _ShopScreenState extends State<ShopScreen> {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),  // ✅ Ridotto da 12 a 8
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,  // ✅ Aggiunto
           children: [
             _buildShopItemIcon(context, item, isOwned),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),  // ✅ Ridotto da 8 a 4
             Text(
               item.name,
               textAlign: TextAlign.center,
@@ -193,21 +194,23 @@ class _ShopScreenState extends State<ShopScreen> {
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.bold,
+                fontSize: 12,  // ✅ Ridotto
                 color: isOwned
                     ? theme.colorScheme.onSurfaceVariant
                     : theme.colorScheme.onSurface,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),  // ✅ Ridotto da 8 a 4
             if (isOwned)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.lock, size: 14, color: theme.colorScheme.secondary),
+                  Icon(Icons.lock, size: 12, color: theme.colorScheme.secondary),  // ✅ Ridotto
                   const SizedBox(width: 4),
                   Text(
                     'Posseduto',
                     style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,  // ✅ Ridotto
                       color: theme.colorScheme.secondary,
                     ),
                   ),
@@ -219,36 +222,37 @@ class _ShopScreenState extends State<ShopScreen> {
                 children: [
                   Image.asset(
                     'assets/images/coin.png',
-                    width: 16,
-                    height: 16,
+                    width: 14,  // ✅ Ridotto da 16 a 14
+                    height: 14,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '${item.price}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
+                    style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
+                      fontSize: 12,  // ✅ Ridotto
                       color: FantasyGold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),  // ✅ Ridotto da 8 a 4
               SizedBox(
                 width: double.infinity,
-                height: 30,
+                height: 26,  // ✅ Ridotto da 30 a 26
                 child: ElevatedButton(
                   onPressed: () => _handleBuyItem(item),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.secondary,
                     foregroundColor: theme.colorScheme.onSecondary,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),  // ✅ Ridotto
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
                   child: const Text(
                     'ACQUISTA',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),  // ✅ Ridotto
                   ),
                 ),
               ),
@@ -264,32 +268,28 @@ class _ShopScreenState extends State<ShopScreen> {
     final theme = Theme.of(context);
     final iconName = item.iconName;
 
-    // Mappa iconName → Widget
     return switch (iconName) {
-    // PNG esistenti
       'ic_gun_spaziale' => Image.asset(
         'assets/images/ic_gun_spaziale.png',
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         color: isOwned ? Colors.grey : null,
         colorBlendMode: isOwned ? BlendMode.saturation : null,
       ),
       'ic_theme_arcade' => Image.asset(
         'assets/images/ic_theme_arcade.png',
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         color: isOwned ? Colors.grey : null,
         colorBlendMode: isOwned ? BlendMode.saturation : null,
       ),
       'ic_visor_futuristico' => Image.asset(
         'assets/images/ic_visor_futuristico.png',
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         color: isOwned ? Colors.grey : null,
         colorBlendMode: isOwned ? BlendMode.saturation : null,
       ),
-
-    // Cornici (disegnate con Container)
       'ic_frame_scifi' => _buildFrameIcon(
         color: const Color(0xFF00FF66),
         isOwned: isOwned,
@@ -307,8 +307,6 @@ class _ShopScreenState extends State<ShopScreen> {
         color: const Color(0xFFD4AF37),
         isOwned: isOwned,
       ),
-
-    // Cappelli e armi (usa le immagini avatar)
       'hat_mago' => _buildAvatarPartIcon(
         assetPath: 'assets/images/char_hat.png',
         isOwned: isOwned,
@@ -325,11 +323,9 @@ class _ShopScreenState extends State<ShopScreen> {
         assetPath: 'assets/images/char_weapon_wood.png',
         isOwned: isOwned,
       ),
-
-    // Fallback: icona shopping cart
       _ => Icon(
         Icons.shopping_cart,
-        size: 40,
+        size: 36,
         color: isOwned
             ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
             : theme.colorScheme.secondary,
@@ -346,8 +342,8 @@ class _ShopScreenState extends State<ShopScreen> {
     final displayColor = isOwned ? Colors.grey : color;
 
     return Container(
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
@@ -366,8 +362,8 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
       child: Center(
         child: Container(
-          width: 22,
-          height: 22,
+          width: 20,
+          height: 20,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
@@ -387,8 +383,8 @@ class _ShopScreenState extends State<ShopScreen> {
   }) {
     return Image.asset(
       assetPath,
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       color: isOwned ? Colors.grey : null,
       colorBlendMode: isOwned ? BlendMode.saturation : null,
       fit: BoxFit.contain,
