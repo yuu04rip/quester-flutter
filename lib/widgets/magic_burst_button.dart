@@ -3,13 +3,15 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../ui/theme/colors.dart';
+import '../ui/theme/app_theme.dart';
 
-/// Bottone con effetto magico animato
+/// Bottone con effetto magico animato e supporto integrato per tema Fantasy / Arcade (Pixel)
 class MagicBurstButton extends StatefulWidget {
   final String text;
   final bool loading;
   final VoidCallback onClickAfterEffect;
   final double? width;
+  final bool? isArcadeOverride; // Opzionale per forzare lo stile arcade
 
   const MagicBurstButton({
     super.key,
@@ -17,6 +19,7 @@ class MagicBurstButton extends StatefulWidget {
     required this.loading,
     required this.onClickAfterEffect,
     this.width,
+    this.isArcadeOverride,
   });
 
   @override
@@ -81,6 +84,9 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
 
   @override
   Widget build(BuildContext context) {
+    // Rileva dinamicamente se siamo in modalità arcade o fantasy
+    final bool isArcade = widget.isArcadeOverride ?? (ThemeManager.currentTheme == AppTheme.arcade);
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -90,18 +96,18 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // ✨ Effetto particelle
+              // ✨ Effetto particelle (adattato al tema)
               if (_controller.value > 0.0 && _controller.value < 1.0)
-                _buildParticles(),
+                _buildParticles(isArcade),
 
               // ✨ Bagliore magico
               if (_glowAnimation.value > 0.0)
-                _buildGlow(),
+                _buildGlow(isArcade),
 
               // ✨ Bottone principale
               Transform.scale(
                 scale: _scaleAnimation.value,
-                child: _buildButton(),
+                child: _buildButton(isArcade),
               ),
             ],
           ),
@@ -110,39 +116,41 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Particelle magiche
-  Widget _buildParticles() {
+  /// ✨ Particelle magiche o pixelate
+  Widget _buildParticles(bool isArcade) {
     final progress = _particleAnimation.value;
-    final particleCount = 16;
+    const particleCount = 16;
 
     return Positioned.fill(
       child: CustomPaint(
         painter: _ParticlePainter(
           progress: progress,
           particleCount: particleCount,
-          isArcade: false,
+          isArcade: isArcade,
         ),
       ),
     );
   }
 
-  /// ✨ Bagliore magico
-  Widget _buildGlow() {
+  /// ✨ Bagliore magico (colore dinamico in base al tema)
+  Widget _buildGlow(bool isArcade) {
     final glowOpacity = (1.0 - _glowAnimation.value) * 0.8;
+    final primaryGlowColor = isArcade ? ArcadeGreen : FantasyGold;
+    final secondaryGlowColor = isArcade ? const Color(0xFF00FFCC) : Colors.orange;
 
     return Positioned.fill(
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.rectangle,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(isArcade ? 4 : 14),
           boxShadow: [
             BoxShadow(
-              color: FantasyGold.withValues(alpha: glowOpacity),
+              color: primaryGlowColor.withValues(alpha: glowOpacity),
               blurRadius: 30 + 40 * _glowAnimation.value,
               spreadRadius: 5 + 10 * _glowAnimation.value,
             ),
             BoxShadow(
-              color: Colors.orange.withValues(alpha: glowOpacity * 0.5),
+              color: secondaryGlowColor.withValues(alpha: glowOpacity * 0.5),
               blurRadius: 20 + 30 * _glowAnimation.value,
               spreadRadius: 2,
             ),
@@ -152,49 +160,60 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Bottone principale
-  Widget _buildButton() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: widget.loading ? null : _handleClick,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: FantasyGold,
-          foregroundColor: FantasyBackground,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.5),
-              width: 1.5,
+  /// ✨ Bottone principale unificato (Stile Pixel / Fantasy + Effetto Burst)
+  Widget _buildButton(bool isArcade) {
+    final bgColor = isArcade ? const Color(0xFF00FF41) : FantasyGold;
+    final textColor = isArcade ? const Color(0xFF0A0A0F) : FantasyBackground;
+    final borderRadius = isArcade ? 4.0 : 14.0;
+
+    return Opacity(
+      opacity: widget.loading ? 0.6 : 1.0,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: widget.loading ? null : _handleClick,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: bgColor,
+            foregroundColor: textColor,
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+              side: BorderSide(
+                color: isArcade ? bgColor : Colors.white.withValues(alpha: 0.5),
+                width: isArcade ? 3 : 1.5,
+              ),
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: isArcade ? 28 : 24,
+              vertical: isArcade ? 16 : 12,
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        ),
-        child: widget.loading
-            ? const SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.5,
-            color: FantasyBackground,
-          ),
-        )
-            : Text(
-          widget.text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+          child: widget.loading
+              ? SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: textColor,
+            ),
+          )
+              : Text(
+            widget.text.toUpperCase(),
+            style: TextStyle(
+              fontSize: isArcade ? 18 : 16,
+              fontWeight: FontWeight.bold,
+              fontFamily: isArcade ? 'QuesterPixel' : 'QuesterFantasy',
+              letterSpacing: isArcade ? 2 : 1.2,
+            ),
           ),
         ),
       ),
@@ -202,7 +221,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
   }
 }
 
-/// ✨ Painter per le particelle
+/// ✨ Painter per le particelle (Supporta colori Arcade o Fantasy)
 class _ParticlePainter extends CustomPainter {
   final double progress;
   final int particleCount;
@@ -229,9 +248,16 @@ class _ParticlePainter extends CustomPainter {
       final alpha = (1.0 - progress).clamp(0.0, 1.0);
       final particleSize = 3 + random.nextDouble() * 4;
 
-      final color = i % 2 == 0
-          ? FantasyGold.withValues(alpha: alpha)
-          : Colors.orange.withValues(alpha: alpha * 0.7);
+      final Color color;
+      if (isArcade) {
+        color = i % 2 == 0
+            ? const Color(0xFF00FF41).withValues(alpha: alpha)
+            : const Color(0xFF00FFCC).withValues(alpha: alpha * 0.8);
+      } else {
+        color = i % 2 == 0
+            ? FantasyGold.withValues(alpha: alpha)
+            : Colors.orange.withValues(alpha: alpha * 0.7);
+      }
 
       canvas.drawCircle(
         Offset(px, py),
@@ -243,9 +269,9 @@ class _ParticlePainter extends CustomPainter {
       if (progress > 0.3) {
         final trailAlpha = alpha * 0.3;
         canvas.drawCircle(
-          Offset(px - 5, py - 5),
-          particleSize * 0.6,
-          Paint()..color = FantasyGold.withValues(alpha: trailAlpha),
+            Offset(px - 5, py - 5),
+            particleSize * 0.6,
+            Paint()..color = color.withValues(alpha: trailAlpha),
         );
       }
     }
@@ -253,6 +279,6 @@ class _ParticlePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ParticlePainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress || oldDelegate.isArcade != isArcade;
   }
 }

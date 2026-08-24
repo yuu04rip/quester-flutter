@@ -10,6 +10,7 @@ import 'profile_components.dart';
 import 'profile_constants.dart';
 import '/widgets/avatar_view.dart';
 import '/widgets/magic_burst_button.dart';  // ✅ Import per MagicBurstButton
+import 'owned_cosmetics_section.dart';      // ✅ Import per la sezione cosmetici ufficiale
 
 /// Callback per le azioni del profilo
 class ProfileCallbacks {
@@ -55,27 +56,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
-  /// Carica i dati dell'utente
+  /// Carica i dati dell'utente in modo sicuro e reattivo
   Future<void> _loadUserData() async {
     final userId = await widget.sessionManager.loggedUserId();
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
     final user = await widget.userRepository.getUserById(userId);
     final owned = await widget.userRepository.getOwnedCosmetics(userId);
     final equipped = await widget.userRepository.getEquippedCosmetics(userId);
+
     final displayCosmetics = AvatarCosmetics(
       hat: equipped.hat,
       weapon: equipped.weapon,
       frame: equipped.frame == FrameType.none ? FrameType.basic : equipped.frame,
     );
 
-    setState(() {
-      _user = user;
-      _ownedCosmetics = owned;
-      _equippedCosmetics = equipped;
-      _equippedCosmetics = displayCosmetics;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _user = user;
+        _ownedCosmetics = owned;
+        _equippedCosmetics = displayCosmetics;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -94,7 +100,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildProfileCard(context),
           const SizedBox(height: 16),
-          _buildOwnedCosmetics(context),
+          // ✅ Sezione cosmetici e temi
+          OwnedCosmeticsSection(
+            ownedCosmetics: _ownedCosmetics,
+            onRefresh: _loadUserData,
+            onThemeApplied: (theme) {
+              // Aggiorna lo stato per applicare subito il cambio di tema sul profilo
+              if (mounted) setState(() {});
+            },
+          ),
           const SizedBox(height: 16),
           // ✅ Pulsante logout con MagicBurstButton
           MagicBurstButton(
@@ -129,9 +143,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // ✅ Avatar reale con cosmetici
+            // ✅ Avatar reale con cosmetici (cliccabile per aprire la personalizzazione)
             GestureDetector(
-              onTap: widget.callbacks.onShowCustomization,
+              onTap: () async {
+                widget.callbacks.onShowCustomization();
+                // Ricarica i dati non appena si torna dalla schermata di personalizzazione
+                await _loadUserData();
+              },
               child: AvatarView(
                 cosmetics: _equippedCosmetics,
                 size: 140,
@@ -217,119 +235,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Sezione cosmetici posseduti
-  Widget _buildOwnedCosmetics(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 14,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(
-          color: theme.colorScheme.primary.withValues(alpha: 0.65),
-          width: 2,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'I Tuoi Cosmetici',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: theme.colorScheme.secondary,
-                      ),
-                    ),
-                    Text(
-                      '${_ownedCosmetics.length} oggetti posseduti',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.refresh,
-                    color: theme.colorScheme.secondary,
-                  ),
-                  onPressed: _loadUserData,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Divider(color: theme.colorScheme.secondary.withValues(alpha: 0.35)),
-            const SizedBox(height: 14),
-            if (_ownedCosmetics.isEmpty)
-              Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      color: theme.colorScheme.secondary.withValues(alpha: 0.45),
-                      size: 28,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Nessun cosmetico acquistato',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1,
-                ),
-                itemCount: _ownedCosmetics.length,
-                itemBuilder: (context, index) {
-                  final cosmetic = _ownedCosmetics[index];
-                  return _buildCosmeticItem(context, cosmetic);
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Singolo cosmetico
-  Widget _buildCosmeticItem(BuildContext context, OwnedCosmetic cosmetic) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.primary.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.auto_awesome,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          size: 32,
-        ),
-      ),
-    );
-  }
-
   /// Pulsante elimina account
   Widget _buildDeleteButton(BuildContext context) {
     return OutlinedButton(
@@ -367,12 +272,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Annulla'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final newUsername = controller.text.trim();
               if (newUsername.isNotEmpty && newUsername.length >= 3) {
                 widget.callbacks.onUpdateUsername(newUsername);
                 Navigator.pop(dialogContext);
-                _loadUserData();
+                await _loadUserData(); // Aggiorna i dati sul momento
               }
             },
             child: const Text('Conferma'),

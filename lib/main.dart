@@ -22,6 +22,7 @@ import 'ui/screens/auth_screen.dart';
 import 'ui/screens/nav_bar.dart';
 import 'ui/screens/nav_screens.dart';
 import 'ui/theme/app_theme.dart';
+
 // Plugin per le notifiche locali
 final FlutterLocalNotificationsPlugin notificationsPlugin =
 FlutterLocalNotificationsPlugin();
@@ -29,7 +30,7 @@ FlutterLocalNotificationsPlugin();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Inizializza il database FFI solo su desktop
+  // Inizializza il database FFI solo su desktop
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -86,10 +87,10 @@ Future<void> main() async {
   );
   final reminderService = ReminderService(notificationsPlugin);
 
-  // ✅ Inizializza lo shop con gli oggetti predefiniti
+  // Inizializza lo shop con gli oggetti predefiniti
   await _initShop(shopDao);
 
-  // ✅ Carica il tema salvato
+  // Carica il tema salvato e impostalo sul Notifier
   final savedTheme = await themePreferences.getTheme();
   ThemeManager.setTheme(savedTheme);
 
@@ -140,6 +141,42 @@ Future<void> _initShop(dynamic shopDao) async {
   ]);
 }
 
+/// Widget per gestire lo sfondo dinamico Arcade (immagine pixelata)
+class ArcadeBackground extends StatelessWidget {
+  final Widget child;
+
+  const ArcadeBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
+
+    if (!isArcade) {
+      return child;
+    }
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/bg_arcade_pixel.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: const Color(0xFF100323),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.35),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+}
+
 /// Widget principale dell'app
 class QuesterApp extends StatefulWidget {
   final AuthService authService;
@@ -168,13 +205,11 @@ class QuesterApp extends StatefulWidget {
 class _QuesterAppState extends State<QuesterApp> {
   bool _isLoggedIn = false;
   bool _isLoading = true;
-  AppTheme _currentTheme = AppTheme.fantasy;
 
   @override
   void initState() {
     super.initState();
     _checkSession();
-    _currentTheme = ThemeManager.currentTheme;
   }
 
   /// Verifica se l'utente è già loggato
@@ -191,42 +226,50 @@ class _QuesterAppState extends State<QuesterApp> {
     if (_isLoading) {
       return MaterialApp(
         home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+          body: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
-    return MaterialApp(
-      title: 'Quester',
-      debugShowCheckedModeBanner: false,
-      theme: QuesterTheme.getThemeData(
-        themeType: _currentTheme,
-        darkTheme: true,
-      ),
-      home: _isLoggedIn
-          ? NavBar(
-        services: NavServices(
-          missionService: widget.missionService,
-          authService: widget.authService,
-          shopService: widget.shopService,
-        ),
-        repositories: NavRepositories(
-          missionRepository: widget.missionRepository,
-          userRepository: widget.userRepository,
-          shopDao: widget.shopDao,
-        ),
-        sessionManager: widget.sessionManager,
-        onLogout: () {
-          // ✅ Torna alla schermata di login
-          setState(() => _isLoggedIn = false);
-        },
-      )
-          : AuthScreen(
-        authService: widget.authService,
-        onAuthSuccess: () {
-          setState(() => _isLoggedIn = true);
-        },
-      ),
+    // Ascolta i cambiamenti di ThemeManager in tempo reale
+    return ValueListenableBuilder<AppTheme>(
+      valueListenable: ThemeManager.themeNotifier,
+      builder: (context, currentTheme, child) {
+        return MaterialApp(
+          title: 'Quester',
+          debugShowCheckedModeBanner: false,
+          theme: QuesterTheme.getThemeData(
+            themeType: currentTheme,
+            darkTheme: true,
+          ),
+          // Avvolgiamo la home con ArcadeBackground per mostrare l'immagine in modalità Arcade
+          home: ArcadeBackground(
+            child: _isLoggedIn
+                ? NavBar(
+              services: NavServices(
+                missionService: widget.missionService,
+                authService: widget.authService,
+                shopService: widget.shopService,
+              ),
+              repositories: NavRepositories(
+                missionRepository: widget.missionRepository,
+                userRepository: widget.userRepository,
+                shopDao: widget.shopDao,
+              ),
+              sessionManager: widget.sessionManager,
+              onLogout: () {
+                setState(() => _isLoggedIn = false);
+              },
+            )
+                : AuthScreen(
+              authService: widget.authService,
+              onAuthSuccess: () {
+                setState(() => _isLoggedIn = true);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

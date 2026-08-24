@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import '/repository/user_repository.dart';
-import 'frame_basic.dart'; // Assicurati di importare il file della cornice!
+import 'frame_basic.dart';
+import 'frame_scifi.dart'; // ✅ Importato il file della cornice Sci-Fi
 
 /// Vista avatar con cosmetici
 class AvatarView extends StatelessWidget {
@@ -79,16 +80,14 @@ class AvatarView extends StatelessWidget {
   Widget _buildFrameWrapper(Widget child) {
     switch (cosmetics.frame) {
       case FrameType.basic:
-      case FrameType.cavaliere: // Puoi usare FrameBasic anche per cavaliere o personalizzarlo
+      case FrameType.cavaliere:
         return FrameBasic(size: size, child: child);
 
       case FrameType.mago:
-      // Qui potrai mettere un domani FrameMago, per ora usa FrameBasic o un fallback
         return FrameBasic(size: size, child: child);
 
       case FrameType.scifi:
-      // Qui potrai mettere un domani FrameScifi
-        return FrameBasic(size: size, child: child);
+        return FrameSciFi(size: size, child: child); // ✅ Adesso mostra la cornice sci-fi!
 
       case FrameType.none:
       default:

@@ -7,17 +7,10 @@ import '/repository/mission_repository.dart';
 import '/repository/user_repository.dart';
 import '/data/session/session_manager.dart';
 import '/domain/service/mission_service.dart';
-import '/ui/theme/colors.dart';
 import '../mission/components/mission_card.dart';
+import '../mission/components/filter_status.dart'; // ✅ Importazione del nuovo file centralizzato
 
-/// Filtro per lo stato delle missioni
-enum FilterStatus {
-  all,
-  inProgress,
-  completed,
-}
-
-/// Schermata lista missioni in stile RPG Fantasy
+/// Schermata lista missioni dinamica basata sul tema attivo
 class MissionListScreen extends StatefulWidget {
   final MissionService missionService;
   final MissionRepository missionRepository;
@@ -82,9 +75,11 @@ class _MissionListScreenState extends State<MissionListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: FantasyGold),
+      return Center(
+        child: CircularProgressIndicator(color: theme.colorScheme.secondary),
       );
     }
 
@@ -118,6 +113,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
   /// Header con titolo e contatori
   Widget _buildHeader(BuildContext context) {
     final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
@@ -130,7 +126,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
               Text(
                 '✦ Registro di $_username ✦',
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: FantasyGold,
+                  color: accentColor,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
                 ),
@@ -146,8 +142,8 @@ class _MissionListScreenState extends State<MissionListScreen> {
           ),
           FloatingActionButton(
             onPressed: () => _showAddMissionDialog(context),
-            backgroundColor: FantasyGold,
-            foregroundColor: FantasyBackground,
+            backgroundColor: accentColor,
+            foregroundColor: theme.colorScheme.onSecondary,
             elevation: 4,
             mini: true,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -158,8 +154,11 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  /// Barra di ricerca stilizzata
+  /// Barra di ricerca stilizzata dinamicamente
   Widget _buildSearchBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: TextField(
@@ -167,21 +166,21 @@ class _MissionListScreenState extends State<MissionListScreen> {
         style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: 'Cerca tra le imprese...',
-          hintStyle: TextStyle(color: Colors.grey.shade500),
-          prefixIcon: const Icon(Icons.search_rounded, color: FantasyGold),
+          hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+          prefixIcon: Icon(Icons.search_rounded, color: accentColor),
           filled: true,
-          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: FantasyGold.withValues(alpha: 0.2), width: 1),
+            borderSide: BorderSide(color: accentColor.withValues(alpha: 0.2), width: 1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: FantasyGold, width: 1.5),
+            borderSide: BorderSide(color: accentColor, width: 1.5),
           ),
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -209,7 +208,9 @@ class _MissionListScreenState extends State<MissionListScreen> {
   }
 
   Widget _buildFilterChip(BuildContext context, FilterStatus filter, String label, IconData icon) {
+    final theme = Theme.of(context);
     final isSelected = _selectedFilter == filter;
+    final accentColor = theme.colorScheme.secondary;
 
     return FilterChip(
       selected: isSelected,
@@ -219,23 +220,23 @@ class _MissionListScreenState extends State<MissionListScreen> {
           Icon(
             icon,
             size: 14,
-            color: isSelected ? FantasyBackground : FantasyGold,
+            color: isSelected ? theme.colorScheme.onSecondary : accentColor,
           ),
           const SizedBox(width: 6),
           Text(label),
         ],
       ),
-      selectedColor: FantasyGold,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      selectedColor: accentColor,
+      backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       labelStyle: TextStyle(
-        color: isSelected ? FantasyBackground : Theme.of(context).colorScheme.onSurface,
+        color: isSelected ? theme.colorScheme.onSecondary : theme.colorScheme.onSurface,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 13,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSelected ? FantasyGold : FantasyGold.withValues(alpha: 0.3),
+          color: isSelected ? accentColor : accentColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -246,6 +247,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
   /// Stato vuoto tematico
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
 
     return Center(
       child: Column(
@@ -254,13 +256,13 @@ class _MissionListScreenState extends State<MissionListScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: FantasyGold.withValues(alpha: 0.1),
+              color: accentColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.shield_outlined,
               size: 48,
-              color: FantasyGold.withValues(alpha: 0.7),
+              color: accentColor.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 16),
@@ -283,8 +285,10 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  /// Dettaglio missione in modale (per spuntare i subtask)
+  /// Dettaglio missione in modale
   void _showMissionDetail(BuildContext context, MissionWithSubTasks missionWithTasks) {
+    final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
     final mission = missionWithTasks.mission;
     final missionType = MissionType.fromDbValue(mission.type);
     final progress = missionWithTasks.progress;
@@ -315,12 +319,12 @@ class _MissionListScreenState extends State<MissionListScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: FantasyGold.withValues(alpha: 0.15),
+                    color: accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     missionType.label.toUpperCase(),
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: FantasyGold),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentColor),
                   ),
                 ),
                 if (mission.description.isNotEmpty) ...[
@@ -330,15 +334,15 @@ class _MissionListScreenState extends State<MissionListScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, size: 18, color: FantasyGold),
+                    Icon(Icons.star_rounded, size: 18, color: accentColor),
                     const SizedBox(width: 4),
                     Text('+${missionType.xpReward} XP',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: FantasyGold)),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
                     const SizedBox(width: 16),
                     Image.asset('assets/images/coin.png', width: 18, height: 18),
                     const SizedBox(width: 4),
                     Text('+${missionType.coinReward} Monete',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: FantasyGold)),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -350,9 +354,9 @@ class _MissionListScreenState extends State<MissionListScreen> {
                         child: LinearProgressIndicator(
                           value: progress,
                           minHeight: 8,
-                          backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                          backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            mission.completed ? Colors.green : FantasyGold,
+                            mission.completed ? Colors.green : accentColor,
                           ),
                         ),
                       ),
@@ -374,8 +378,8 @@ class _MissionListScreenState extends State<MissionListScreen> {
                     return CheckboxListTile(
                       title: Text(subTask.text, style: const TextStyle(fontSize: 13)),
                       value: subTask.done,
-                      activeColor: FantasyGold,
-                      checkColor: FantasyBackground,
+                      activeColor: accentColor,
+                      checkColor: theme.colorScheme.onSecondary,
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -396,7 +400,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Chiudi', style: TextStyle(color: FantasyGold)),
+            child: Text('Chiudi', style: TextStyle(color: accentColor)),
           ),
         ],
       ),
@@ -405,6 +409,8 @@ class _MissionListScreenState extends State<MissionListScreen> {
 
   /// Modale Aggiungi Missione
   void _showAddMissionDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     String selectedType = 'GIORNALIERO';
@@ -481,8 +487,8 @@ class _MissionListScreenState extends State<MissionListScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: FantasyGold,
-                foregroundColor: FantasyBackground,
+                backgroundColor: accentColor,
+                foregroundColor: theme.colorScheme.onSecondary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: const Text('Crea', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -495,6 +501,8 @@ class _MissionListScreenState extends State<MissionListScreen> {
 
   /// Modale Modifica Missione
   void _showEditMissionDialog(BuildContext context, MissionWithSubTasks missionWithTasks) {
+    final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
     final titleController = TextEditingController(text: missionWithTasks.mission.title);
     final descriptionController = TextEditingController(text: missionWithTasks.mission.description);
     String selectedType = missionWithTasks.mission.type;
@@ -571,8 +579,8 @@ class _MissionListScreenState extends State<MissionListScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: FantasyGold,
-                foregroundColor: FantasyBackground,
+                backgroundColor: accentColor,
+                foregroundColor: theme.colorScheme.onSecondary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: const Text('Salva', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -622,6 +630,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
       BuildContext context,
       MissionWithSubTasks missionWithTasks,
       ) async {
+    final theme = Theme.of(context);
     final deletedMission = missionWithTasks.mission;
     final deletedSubtasks = missionWithTasks.subTasks;
 
@@ -635,7 +644,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
         content: Text('"${deletedMission.title}" rimossa'),
         action: SnackBarAction(
           label: 'ANNULLA',
-          textColor: FantasyGold,
+          textColor: theme.colorScheme.secondary,
           onPressed: () async {
             await widget.missionService.restoreMission(deletedMission, deletedSubtasks);
             _loadData();

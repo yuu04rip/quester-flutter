@@ -8,6 +8,7 @@ import '/data/session/session_manager.dart';
 import '/domain/service/auth_service.dart';
 import '/domain/service/mission_service.dart';
 import '/domain/service/shop_service.dart';
+import '/widgets/arcade_background.dart'; // ✅ Importato lo sfondo arcade
 import 'nav_screens.dart';
 import 'profile_screen.dart';
 import '../screens/mission/mission_list_screen.dart';
@@ -65,28 +66,32 @@ class _NavBarState extends State<NavBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      bottomNavigationBar: _showCustomization
-          ? null
-          : BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-        },
-        items: navScreensList.map((screen) {
-          return BottomNavigationBarItem(
-            icon: Icon(screen.icon),
-            label: screen.title,
-          );
-        }).toList(),
-        backgroundColor: const Color(0xA90D0B14),
-        selectedItemColor: Theme.of(context).colorScheme.secondary,
-        unselectedItemColor: Theme.of(context)
-            .colorScheme
-            .onSurfaceVariant
-            .withValues(alpha: 0.7),
+    final theme = Theme.of(context);
+
+    return ArcadeBackground(
+      child: Scaffold(
+        // ✅ Rimosso Colors.transparent fisso: i temi normali useranno il proprio colore di sfondo,
+        // mentre in modalità arcade ci penserà ArcadeBackground a rendere lo sfondo trasparente.
+        bottomNavigationBar: _showCustomization
+            ? null
+            : BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() => _currentIndex = index);
+          },
+          items: navScreensList.map((screen) {
+            return BottomNavigationBarItem(
+              icon: Icon(screen.icon),
+              label: screen.title,
+            );
+          }).toList(),
+          backgroundColor: const Color(0xA90D0B14),
+          selectedItemColor: theme.colorScheme.secondary,
+          unselectedItemColor: theme.colorScheme.onSurfaceVariant
+              .withValues(alpha: 0.7),
+        ),
+        body: _showCustomization ? _buildCustomization() : _buildBody(),
       ),
-      body: _showCustomization ? _buildCustomization() : _buildBody(),
     );
   }
 

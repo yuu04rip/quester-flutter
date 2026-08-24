@@ -28,11 +28,18 @@ class OwnedCosmeticsSection extends StatefulWidget {
 
 class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
   AppTheme _currentTheme = AppTheme.fantasy;
+  final ThemePreferences _themePreferences = ThemePreferences();
 
   static const List<String> _themeIds = [
     'theme_arcade',
     'theme_fantasy',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTheme = ThemeManager.currentTheme;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +138,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     );
   }
 
-  /// Griglia cosmetici
+  /// Griglia cosmetici (aspectRatio corretto a 0.82 per evitare overflow)
   Widget _buildCosmeticsGrid(BuildContext context) {
     return GridView.builder(
       shrinkWrap: true,
@@ -140,7 +147,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
         crossAxisCount: 3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 1,
+        childAspectRatio: 0.82,
       ),
       itemCount: widget.ownedCosmetics.length,
       itemBuilder: (context, index) {
@@ -181,51 +188,115 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
       ),
       color: isSelected
           ? theme.colorScheme.secondary.withValues(alpha: 0.15)
-          : theme.colorScheme.surfaceVariant.withValues(alpha: 0.6),
+          : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
       child: InkWell(
         onTap: () {
           if (isTheme) {
-            final nextTheme = _getToggledTheme(itemId);
-            setState(() => _currentTheme = nextTheme);
-            widget.onThemeApplied(nextTheme);
+            final AppTheme targetTheme;
+            if (_isThemeActive(itemId)) {
+              targetTheme = AppTheme.fantasy;
+            } else {
+              targetTheme = _getTargetTheme(itemId);
+            }
+
+            setState(() => _currentTheme = targetTheme);
+            ThemeManager.setTheme(targetTheme);
+            _themePreferences.saveTheme(targetTheme);
+            widget.onThemeApplied(targetTheme);
           }
         },
         borderRadius: BorderRadius.circular(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 32,
-              color: isSelected
-                  ? theme.colorScheme.secondary
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              displayName,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? theme.colorScheme.secondary
-                    : theme.colorScheme.onSurface,
-              ),
-            ),
-            if (isSelected && isTheme) ...[
-              const SizedBox(height: 2),
-              Text(
-                'ATTIVO',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 9,
-                  color: theme.colorScheme.secondary,
-                  fontWeight: FontWeight.bold,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 36, // Spazio fisso adeguato per l'icona/immagine ingrandita
+                child: Center(
+                  child: _buildCosmeticIcon(context, itemId, isSelected),
                 ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                displayName,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 9,
+                  color: isSelected
+                      ? theme.colorScheme.secondary
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+              if (isSelected && isTheme) ...[
+                const SizedBox(height: 1),
+                Text(
+                  'ATTIVO',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 8,
+                    color: theme.colorScheme.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Icona dinamica in base al cosmetico (Ora usa esattamente le stesse immagini e dimensioni del Negozio)
+  Widget _buildCosmeticIcon(BuildContext context, String itemId, bool isSelected) {
+    final theme = Theme.of(context);
+
+    return switch (itemId) {
+      'theme_arcade' => Image.asset('assets/images/ic_theme_arcade.png', width: 36, height: 36, fit: BoxFit.contain),
+      'theme_fantasy' => Icon(
+        Icons.auto_awesome,
+        size: 34,
+        color: isSelected ? theme.colorScheme.secondary : FantasyGold,
+      ),
+      'frame_mago' => _buildFrameIcon(const Color(0xFF6B4C9A)),
+      'frame_cavaliere' => _buildFrameIcon(const Color(0xFFD4AF37)),
+      'frame_scifi' || 'ic_frame_scifi' => _buildFrameIcon(const Color(0xFF00FF66)),
+      'frame_basic' => _buildFrameIcon(const Color(0xFFD4AF37)),
+      'hat_mago' => Image.asset('assets/images/char_hat.png', width: 36, height: 36, fit: BoxFit.contain),
+      'elmo_cavaliere' => Image.asset('assets/images/char_hat.png', width: 36, height: 36, fit: BoxFit.contain),
+      'visor_futuristico' || 'ic_visor_futuristico' => Image.asset('assets/images/ic_visor_futuristico.png', width: 36, height: 36, fit: BoxFit.contain),
+      'staff_mago' => Image.asset('assets/images/char_weapon_wood.png', width: 36, height: 36, fit: BoxFit.contain),
+      'sword_cavaliere' => Image.asset('assets/images/char_weapon_wood.png', width: 36, height: 36, fit: BoxFit.contain),
+      'gun_spaziale' || 'ic_gun_spaziale' => Image.asset('assets/images/ic_gun_spaziale.png', width: 36, height: 36, fit: BoxFit.contain),
+      _ => Icon(
+        Icons.auto_awesome,
+        size: 34,
+        color: isSelected
+            ? theme.colorScheme.secondary
+            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
+    };
+  }
+
+  /// Icona cornice
+  Widget _buildFrameIcon(Color color) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: color, width: 3),
+      ),
+      child: Center(
+        child: Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+          ),
         ),
       ),
     );
@@ -243,12 +314,16 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     }
   }
 
-  /// Ottiene il tema toggle
-  AppTheme _getToggledTheme(String itemId) {
-    if (itemId == 'theme_arcade' || itemId == 'theme_fantasy') {
-      return _currentTheme == AppTheme.arcade ? AppTheme.fantasy : AppTheme.arcade;
+  /// Ottiene il tema corrispondente all'ID premuto
+  AppTheme _getTargetTheme(String itemId) {
+    switch (itemId) {
+      case 'theme_arcade':
+        return AppTheme.arcade;
+      case 'theme_fantasy':
+        return AppTheme.fantasy;
+      default:
+        return AppTheme.fantasy;
     }
-    return AppTheme.fantasy;
   }
 
   /// Nome visualizzato del tema

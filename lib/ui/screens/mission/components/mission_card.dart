@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import '/data/models/mission_with_subtasks.dart';
 import '/data/models/mission_type.dart';
 import '/data/models/subtask.dart';
-import '/ui/theme/colors.dart';
 
-/// Card per singola missione in stile RPG Fantasy
+/// Card per singola missione dinamica basata sul tema attivo
 class MissionCard extends StatelessWidget {
   final MissionWithSubTasks missionWithTasks;
   final VoidCallback onClick;
@@ -26,6 +25,7 @@ class MissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
     final mission = missionWithTasks.mission;
     final progress = missionWithTasks.progress;
     final percentage = (progress * 100).toInt();
@@ -52,7 +52,7 @@ class MissionCard extends StatelessWidget {
           side: BorderSide(
             color: isCompleted
                 ? Colors.green.withValues(alpha: 0.6)
-                : FantasyGold.withValues(alpha: 0.4),
+                : accentColor.withValues(alpha: 0.4),
             width: isCompleted ? 1.5 : 1,
           ),
         ),
@@ -82,14 +82,14 @@ class MissionCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: FantasyGold.withValues(alpha: 0.15),
+                        color: accentColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: FantasyGold.withValues(alpha: 0.3)),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         missionType.label.toUpperCase(),
-                        style: const TextStyle(
-                          color: FantasyGold,
+                        style: TextStyle(
+                          color: accentColor,
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
@@ -122,7 +122,7 @@ class MissionCard extends StatelessWidget {
                           minHeight: 6,
                           backgroundColor: theme.colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            isCompleted ? Colors.green : FantasyGold,
+                            isCompleted ? Colors.green : accentColor,
                           ),
                         ),
                       ),
@@ -132,7 +132,7 @@ class MissionCard extends StatelessWidget {
                       '$percentage%',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isCompleted ? Colors.green : FantasyGold,
+                        color: isCompleted ? Colors.green : accentColor,
                       ),
                     ),
                   ],
@@ -154,11 +154,11 @@ class MissionCard extends StatelessWidget {
                 Row(
                   children: [
                     // XP Reward
-                    const Icon(Icons.star_rounded, size: 16, color: FantasyGold),
+                    Icon(Icons.star_rounded, size: 16, color: accentColor),
                     const SizedBox(width: 2),
                     Text(
                       '+${missionType.xpReward}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: FantasyGold),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: accentColor),
                     ),
                     const SizedBox(width: 10),
                     // Coin Reward
@@ -166,7 +166,7 @@ class MissionCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '+${missionType.coinReward}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: FantasyGold),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: accentColor),
                     ),
                     const Spacer(),
 
@@ -221,6 +221,7 @@ class MissionCard extends StatelessWidget {
 
   Widget _buildSubtaskItem(BuildContext context, SubTask task) {
     final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -232,8 +233,8 @@ class MissionCard extends StatelessWidget {
             child: Checkbox(
               value: task.done,
               onChanged: null, // Sola lettura nella card, si spunta nel dettaglio
-              activeColor: FantasyGold,
-              checkColor: FantasyBackground,
+              activeColor: accentColor,
+              checkColor: theme.colorScheme.onSecondary,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),

@@ -68,12 +68,13 @@ flutter:
   #  Asset (immagini)
   assets:
     - assets/images/
+    - assets/images/bg_arcade_pixel.png
 
   #  Font personalizzati
   fonts:
     - family: QuesterFantasy
       fonts:
-        - asset: assets/fonts/northeternal.otf
+        - asset: assets/fonts/mediaval.ttf
     - family: QuesterPixel
       fonts:
         - asset: assets/fonts/pixelfont.ttf
