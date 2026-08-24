@@ -25,8 +25,7 @@ class SessionManager {
   /// Crea una nuova sessione
   Future<void> createSession(int userId) async {
     final prefs = await SharedPreferences.getInstance();
-    // Puliamo eventuali rimasugli prima di scrivere la nuova sessione
-    await prefs.clear();
+    // Imposta direttamente i dati di sessione senza cancellare altre preferenze (es. temi)
     await prefs.setInt(LOGGED_USER_ID, userId);
     await prefs.setBool(IS_LOGGED_IN, true);
   }
@@ -34,7 +33,8 @@ class SessionManager {
   /// Cancella la sessione corrente
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    // Svuota completamente le preferenze
-    await prefs.clear();
+    // Rimuove solo le chiavi della sessione, preservando il resto delle preferenze
+    await prefs.remove(LOGGED_USER_ID);
+    await prefs.remove(IS_LOGGED_IN);
   }
 }

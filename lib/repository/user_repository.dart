@@ -16,7 +16,7 @@ class AvatarCosmetics {
   final WeaponType weapon;
   final FrameType frame;
 
-  const AvatarCosmetics({  // ✅ Aggiunto const!
+  const AvatarCosmetics({
     this.hat = HatType.none,
     this.weapon = WeaponType.none,
     this.frame = FrameType.none,
@@ -24,9 +24,9 @@ class AvatarCosmetics {
 }
 
 class UserRepository {
-  static const int xpBase = 100;       // ✅ lowerCamelCase
-  static const int xpIncrement = 50;   // ✅ lowerCamelCase
-  static const int maxLevel = 50;      // ✅ lowerCamelCase
+  static const int xpBase = 100;
+  static const int xpIncrement = 50;
+  static const int maxLevel = 50;
 
   final UserDao userDao;
   final OwnedCosmeticDao? ownedCosmeticDao;
@@ -152,7 +152,7 @@ class UserRepository {
     return true;
   }
 
-  /// Elimina account
+  /// Elimina account specifico (Sicuro: cancella solo i dati dell'utente loggato)
   Future<bool> deleteAccount(int userId) async {
     if (await getUserById(userId) == null) return false;
     await ownedCosmeticDao?.deleteAllForUser(userId);
@@ -221,9 +221,5 @@ class UserRepository {
           (e) => e.name == value.toLowerCase(),
       orElse: () => FrameType.basic,
     );
-  }
-  /// Elimina tutti i dati
-  Future<void> deleteUserAndProgress() async {
-    await userDao.deleteAllUsers();
   }
 }

@@ -86,7 +86,7 @@ Future<void> main() async {
   );
   final reminderService = ReminderService(notificationsPlugin);
 
-  // Inizializza lo shop con gli oggetti predefiniti
+  // Inizializza lo shop con gli oggetti predefiniti solo se vuoto
   await _initShop(shopDao);
 
   // Carica il tema salvato e impostalo sul Notifier
@@ -120,9 +120,13 @@ Future<void> _initNotifications() async {
   await notificationsPlugin.initialize(initSettings);
 }
 
-/// Inizializza gli oggetti dello shop
+/// Inizializza gli oggetti dello shop solo se la tabella è vuota (evita reset continui)
 Future<void> _initShop(dynamic shopDao) async {
-  await shopDao.deleteAllItems();
+  final existingItems = await shopDao.getAllItems();
+  if (existingItems.isNotEmpty) {
+    return; // Se gli item esistono già, non facciamo nulla
+  }
+
   await shopDao.upsertItems([
     ShopItem(itemId: 'frame_mago', name: 'Cornice del Mago', price: 30, description: 'Cornice con rune magiche e stelle cadenti', iconName: 'shopping_cart'),
     ShopItem(itemId: 'frame_cavaliere', name: 'Cornice del Cavaliere', price: 30, description: 'Cornice con spade incrociate e scudi', iconName: 'shopping_cart'),

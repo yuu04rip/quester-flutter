@@ -45,7 +45,15 @@ class _MissionListScreenState extends State<MissionListScreen> {
 
   Future<void> _loadData() async {
     final userId = await widget.sessionManager.loggedUserId();
-    if (userId == null) return;
+
+    // FIX: Se l'utente non è loggato, interrompiamo il caricamento per evitare il blocco perenne in loading
+    if (userId == null) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
 
     final missions = await widget.missionRepository.getAllMissionsWithSubTasksForUser(userId);
     final user = await widget.userRepository.getUserById(userId);
@@ -110,7 +118,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
                 onEditClick: () => _showEditMissionDialog(context, missionWithTasks),
                 onResetClick: () => _showResetMissionDialog(context, missionWithTasks),
                 onDeleteClick: () => _handleDeleteMission(context, missionWithTasks),
-                // 👈 AGGIUNTO: Collega il click dei subtask direttamente al servizio
                 onSubTaskToggled: (subTask, done) async {
                   await widget.missionService.toggleSubTask(subTask, done);
                   _loadData();

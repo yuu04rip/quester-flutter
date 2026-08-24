@@ -34,9 +34,15 @@ class AccountService {
     await userRepository.updateUsername(userId, newUsername.trim());
   }
 
-  /// Elimina tutti i dati utente e svuota la sessione
+  /// Elimina l'account dell'utente corrente e svuota la sessione
   Future<void> deleteAccountAndData() async {
-    await userRepository.deleteUserAndProgress();
+    final userId = await sessionManager.loggedUserId();
+    if (userId == null) {
+      throw Exception('Nessun utente autenticato');
+    }
+
+    // Utilizziamo il metodo mirato per eliminare solo il singolo account e i suoi dati
+    await userRepository.deleteAccount(userId);
     await sessionManager.clearSession();
   }
 }

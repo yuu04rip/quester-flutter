@@ -7,16 +7,17 @@ import '/repository/mission_repository.dart';
 import '/repository/user_repository.dart';
 import '../../data/session/session_manager.dart';
 import 'currency_service.dart';
+import 'reminder_service.dart';
 
 class MissionService {
-  static const int MAX_SUBTASKS_PER_MISSION = 10;
-  static const int MIN_TIME_BETWEEN_COMPLETIONS = 30000;
-  static const int MIN_TIME_PER_MISSION = 30000;
+  static const int maxSubtasksPerMission = 10;
+  static const int minTimeBetweenCompletions = 30000;
 
   final MissionRepository missionRepository;
   final UserRepository userRepository;
   final CurrencyService currencyService;
   final SessionManager sessionManager;
+  final ReminderService? reminderService;
   final bool isTestMode;
 
   MissionService({
@@ -24,6 +25,7 @@ class MissionService {
     required this.userRepository,
     required this.currencyService,
     required this.sessionManager,
+    this.reminderService,
     this.isTestMode = false,
   });
 
@@ -48,8 +50,8 @@ class MissionService {
     final validXp = missionType.xpReward;
 
     final cleanSubtasks = subtasks.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-    if (cleanSubtasks.length > MAX_SUBTASKS_PER_MISSION) {
-      throw Exception('Massimo $MAX_SUBTASKS_PER_MISSION subtask per missione');
+    if (cleanSubtasks.length > maxSubtasksPerMission) {
+      throw Exception('Massimo $maxSubtasksPerMission subtask per missione');
     }
 
     final mission = Mission(
@@ -94,8 +96,8 @@ class MissionService {
         .where((s) => s.isNotEmpty)
         .toList();
 
-    if (cleanSubtasks.length > MAX_SUBTASKS_PER_MISSION) {
-      throw Exception('Massimo $MAX_SUBTASKS_PER_MISSION subtask per missione');
+    if (cleanSubtasks.length > maxSubtasksPerMission) {
+      throw Exception('Massimo $maxSubtasksPerMission subtask per missione');
     }
 
     final missionType = MissionType.fromDbValue(newType);
@@ -108,7 +110,6 @@ class MissionService {
       xpReward: validXp,
     );
 
-    // Gestione sicura dell'id poichè ora è int? nel nuovo modello
     final missionId = mission.id;
     if (missionId == null) {
       throw Exception('Impossibile aggiornare una missione senza ID');
@@ -139,6 +140,10 @@ class MissionService {
       await missionRepository.markMissionCompleted(missionId);
       await userRepository.addXp(userId, finalXp);
       await userRepository.addCoins(userId, finalCoins);
+
+      if (reminderService != null) {
+        await reminderService!.cancelMissionReminder(missionId);
+      }
     }
   }
 
@@ -172,6 +177,10 @@ class MissionService {
 
     if (mission.userId != userId) {
       throw Exception('Non autorizzato');
+    }
+
+    if (mission.id != null && reminderService != null) {
+      await reminderService!.cancelMissionReminder(mission.id!);
     }
 
     await missionRepository.deleteMission(mission);
