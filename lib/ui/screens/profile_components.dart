@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '/ui/theme/app_theme.dart';
 
-/// Barra di progresso XP
+/// Barra di progresso XP (Dinamica: classica per Fantasy, segmentata a blocchi per Arcade)
 class FantasyXpProgress extends StatelessWidget {
   final int xpTotale;
   final int livello;
@@ -22,6 +23,8 @@ class FantasyXpProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
+
     return Column(
       children: [
         Row(
@@ -33,8 +36,11 @@ class FantasyXpProgress extends StatelessWidget {
             Text('Liv. ${livello + 1}', style: TextStyle(fontSize: 10, color: Colors.grey)),
           ],
         ),
-        const SizedBox(height: 4),
-        ClipRRect(
+        const SizedBox(height: 6),
+        // Se è Arcade disegniamo i blocchetti separati, altrimenti la barra lineare classica
+        isArcade
+            ? _buildArcadeSegmentedBar(context)
+            : ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
             value: xpProgress,
@@ -44,6 +50,41 @@ class FantasyXpProgress extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// Costruisce una barra a trattini in stile pixel/arcade
+  Widget _buildArcadeSegmentedBar(BuildContext context) {
+    const totalSegments = 10; // Numero di blocchetti totali della barra
+    final activeSegments = (xpProgress * totalSegments).round();
+
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.secondary.withValues(alpha: 0.5), width: 1.5),
+        borderRadius: BorderRadius.circular(4),
+        color: theme.colorScheme.surface,
+      ),
+      child: Row(
+        children: List.generate(totalSegments, (index) {
+          final isActive = index < activeSegments;
+          return Expanded(
+            child: Container(
+              height: 10,
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              decoration: BoxDecoration(
+                // I blocchi attivi usano il colore Primario Neon (es. verde o acceso), quelli vuoti sono scuri
+                color: isActive
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
@@ -89,7 +130,6 @@ class FantasyCoinStatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // ✅ Usa coin.png
         Image.asset(
           'assets/images/coin.png',
           width: 28,

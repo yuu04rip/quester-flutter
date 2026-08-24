@@ -36,8 +36,9 @@ class ButtonStyleFactory {
         borderRadius: BorderRadius.circular(16),
       ),
     ),
+    // Lunghezza aumentata modificando l'horizontal padding da 24 a 40
     padding: WidgetStateProperty.all(
-      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
     ),
   );
 
@@ -58,8 +59,9 @@ class ButtonStyleFactory {
         side: const BorderSide(color: Colors.black, width: 3),
       ),
     ),
+    // Lunghezza aumentata modificando l'horizontal padding da 24 a 40
     padding: WidgetStateProperty.all(
-      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
     ),
   );
 }

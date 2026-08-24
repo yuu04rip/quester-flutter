@@ -5,6 +5,7 @@ import '../../widgets/magic_burst_button.dart';
 import '/repository/auth_repository.dart';
 import '/domain/service/auth_service.dart';
 import '/utils/string_utils.dart';
+import '/ui/theme/app_theme.dart';
 
 /// Schermata di autenticazione (login/registrazione)
 class AuthScreen extends StatefulWidget {
@@ -102,7 +103,6 @@ class _AuthScreenState extends State<AuthScreen> {
     return '✦ $message';
   }
 
-  /// ✅ Gestione autenticazione corretta
   Future<void> _handleAuth() async {
     if (!_validate()) return;
 
@@ -131,7 +131,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => _isLoading = false);
 
-    // ✅ Usa switch con pattern matching (Dart 3)
     switch (result) {
       case AuthSuccess():
         widget.onAuthSuccess();
@@ -145,18 +144,23 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
 
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Card(
-            elevation: 24,
+            elevation: isArcade ? 0 : 24,
+            // 💡 Sfondo semi-trasparente in Arcade per far intravedere il background
+            color: isArcade
+                ? theme.colorScheme.surface.withValues(alpha: 0.85)
+                : null,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(isArcade ? 8 : 28),
               side: BorderSide(
-                color: theme.colorScheme.primary.withValues(alpha: 0.65),
-                width: 2,
+                color: theme.colorScheme.primary.withValues(alpha: isArcade ? 0.9 : 0.65),
+                width: isArcade ? 2 : 2,
               ),
             ),
             child: Padding(
@@ -164,11 +168,11 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildHeader(theme),
+                  _buildHeader(theme, isArcade),
                   const SizedBox(height: 16),
                   Divider(color: theme.colorScheme.secondary.withValues(alpha: 0.35)),
                   const SizedBox(height: 16),
-                  _buildForm(theme),
+                  _buildForm(theme, isArcade),
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 10),
                     _buildErrorCard(_toFantasyError(_errorMessage), theme),
@@ -184,7 +188,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader(ThemeData theme, bool isArcade) {
     return Column(
       children: [
         Container(
@@ -192,8 +196,9 @@ class _AuthScreenState extends State<AuthScreen> {
           height: 66,
           decoration: BoxDecoration(
             color: theme.colorScheme.secondaryContainer,
-            shape: BoxShape.circle,
-            border: Border.all(color: theme.colorScheme.secondary),
+            shape: isArcade ? BoxShape.rectangle : BoxShape.circle,
+            borderRadius: isArcade ? BorderRadius.circular(4) : null,
+            border: Border.all(color: theme.colorScheme.secondary, width: isArcade ? 2 : 1),
           ),
           child: Icon(
             Icons.auto_awesome,
@@ -223,7 +228,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildForm(ThemeData theme) {
+  Widget _buildForm(ThemeData theme, bool isArcade) {
     return Column(
       children: [
         _buildTextField(
@@ -231,6 +236,7 @@ class _AuthScreenState extends State<AuthScreen> {
           label: _isRegisterMode ? 'Nome avventuriero' : 'Username o Email',
           error: _usernameError,
           theme: theme,
+          isArcade: isArcade,
         ),
         if (_isRegisterMode) ...[
           const SizedBox(height: 10),
@@ -239,11 +245,12 @@ class _AuthScreenState extends State<AuthScreen> {
             label: 'Email (opzionale)',
             error: _emailError,
             theme: theme,
+            isArcade: isArcade,
             keyboardType: TextInputType.emailAddress,
           ),
         ],
         const SizedBox(height: 10),
-        _buildPasswordField(theme),
+        _buildPasswordField(theme, isArcade),
       ],
     );
   }
@@ -252,50 +259,61 @@ class _AuthScreenState extends State<AuthScreen> {
     required TextEditingController controller,
     required String label,
     required ThemeData theme,
+    required bool isArcade,
     String? error,
     TextInputType keyboardType = TextInputType.text,
   }) {
+    final borderRadius = isArcade ? 4.0 : 12.0;
+
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
+        filled: isArcade,
+        fillColor: isArcade ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4) : null,
         errorText: error != null ? _toFantasyError(error) : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+          borderRadius: BorderRadius.circular(borderRadius),
+          borderSide: BorderSide(color: theme.colorScheme.secondary, width: isArcade ? 2 : 2),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(borderRadius),
           borderSide: BorderSide(
-            color: theme.colorScheme.secondary.withValues(alpha: 0.35),
+            color: theme.colorScheme.secondary.withValues(alpha: isArcade ? 0.6 : 0.35),
+            width: isArcade ? 1.5 : 1,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPasswordField(ThemeData theme) {
+  Widget _buildPasswordField(ThemeData theme, bool isArcade) {
+    final borderRadius = isArcade ? 4.0 : 12.0;
+
     return TextField(
       controller: _passwordController,
       obscureText: !_passwordVisible,
       decoration: InputDecoration(
         labelText: 'Password',
+        filled: isArcade,
+        fillColor: isArcade ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4) : null,
         errorText: _passwordError != null ? _toFantasyError(_passwordError) : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.secondary, width: 2),
+          borderRadius: BorderRadius.circular(borderRadius),
+          borderSide: BorderSide(color: theme.colorScheme.secondary, width: isArcade ? 2 : 2),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(borderRadius),
           borderSide: BorderSide(
-            color: theme.colorScheme.secondary.withValues(alpha: 0.35),
+            color: theme.colorScheme.secondary.withValues(alpha: isArcade ? 0.6 : 0.35),
+            width: isArcade ? 1.5 : 1,
           ),
         ),
         suffixIcon: IconButton(
@@ -332,12 +350,11 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _buildButtons(ThemeData theme) {
     return Column(
       children: [
-        // ✅ Usa MagicBurstButton invece di ElevatedButton
         MagicBurstButton(
           text: _isRegisterMode ? 'INIZIA L\'AVVENTURA' : 'ENTRA NEL REGNO',
           loading: _isLoading,
           onClickAfterEffect: () {
-            _handleAuth();  // ✅ Chiama _handleAuth
+            _handleAuth();
           },
         ),
         const SizedBox(height: 10),

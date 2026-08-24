@@ -57,12 +57,17 @@ class MissionRepository {
 
   /// Update missione con sostituzione subtask
   Future<void> updateMissionWithSubTasks(Mission mission, List<SubTask> subtasks) async {
+    final missionId = mission.id;
+    if (missionId == null) {
+      throw Exception('Impossibile aggiornare una missione senza ID');
+    }
+
     await missionDao.updateMission(mission);
-    await subTaskDao.deleteSubTasksForMission(mission.id);
+    await subTaskDao.deleteSubTasksForMission(missionId);
 
     if (subtasks.isNotEmpty) {
       final newSubtasks = subtasks.map((st) => SubTask(
-        missionId: mission.id,
+        missionId: missionId,
         text: st.text,
         done: st.done,
       )).toList();
@@ -109,7 +114,9 @@ class MissionRepository {
 
   /// Elimina missione
   Future<void> deleteMission(Mission mission) async {
-    await missionDao.deleteMissionById(mission.id);
+    final missionId = mission.id;
+    if (missionId == null) return;
+    await missionDao.deleteMissionById(missionId);
   }
 
   /// Ripristina missione

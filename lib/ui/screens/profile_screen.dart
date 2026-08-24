@@ -9,8 +9,10 @@ import '../theme/colors.dart';
 import 'profile_components.dart';
 import 'profile_constants.dart';
 import '/widgets/avatar_view.dart';
-import '/widgets/magic_burst_button.dart';  // ✅ Import per MagicBurstButton
-import 'owned_cosmetics_section.dart';      // ✅ Import per la sezione cosmetici ufficiale
+import '/widgets/magic_burst_button.dart';
+import 'owned_cosmetics_section.dart';
+import '/ui/theme/app_theme.dart';
+import '/widgets/arcade_mini_game_widget.dart';
 
 /// Callback per le azioni del profilo
 class ProfileCallbacks {
@@ -56,11 +58,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
+  /// Restituisce il titolo arcade in base al livello (Max Level 50)
+  String _getPlayerTitle(int livello) {
+    if (livello >= 50) return '★ GALAXY COMMANDER ★';
+    if (livello >= 40) return '★ ELITE VETERAN ★';
+    if (livello >= 25) return '★ SPACE ACE ★';
+    if (livello >= 10) return '★ SPACE CADET ★';
+    return '★ NOOB PILOT ★';
+  }
+
   /// Carica i dati dell'utente in modo sicuro e reattivo
   Future<void> _loadUserData() async {
     final userId = await widget.sessionManager.loggedUserId();
+
     if (userId == null) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
       return;
     }
 
@@ -71,7 +85,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final displayCosmetics = AvatarCosmetics(
       hat: equipped.hat,
       weapon: equipped.weapon,
-      frame: equipped.frame == FrameType.none ? FrameType.basic : equipped.frame,
+      frame: equipped.frame == FrameType.none
+          ? FrameType.basic
+          : equipped.frame,
     );
 
     if (mounted) {
@@ -87,41 +103,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
 
     if (_user == null) {
-      return const Center(child: Text('Utente non trovato'));
+      return const Center(
+        child: Text('Utente non trovato'),
+      );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildProfileCard(context),
-          const SizedBox(height: 16),
-          // ✅ Sezione cosmetici e temi
-          OwnedCosmeticsSection(
-            ownedCosmetics: _ownedCosmetics,
-            onRefresh: _loadUserData,
-            onThemeApplied: (theme) {
-              // Aggiorna lo stato per applicare subito il cambio di tema sul profilo
-              if (mounted) setState(() {});
-            },
+    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // ============================================================
+        // CONTENUTO PRINCIPALE DEL PROFILO
+        // ============================================================
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _buildProfileCard(context),
+
+              const SizedBox(height: 16),
+
+              // Sezione cosmetici e temi
+              OwnedCosmeticsSection(
+                ownedCosmetics: _ownedCosmetics,
+                onRefresh: _loadUserData,
+                onThemeApplied: (theme) {
+                  if (mounted) {
+                    setState(() {});
+                  }
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Pulsante logout
+              MagicBurstButton(
+                text: 'ESCI DAL REGNO',
+                loading: false,
+                onClickAfterEffect: () async {
+                  widget.callbacks.onLogout();
+                },
+              ),
+
+              const SizedBox(height: 8),
+
+              _buildDeleteButton(context),
+            ],
           ),
-          const SizedBox(height: 16),
-          // ✅ Pulsante logout con MagicBurstButton
-          MagicBurstButton(
-            text: 'ESCI DAL REGNO',
-            loading: false,
-            onClickAfterEffect: () async {
-              widget.callbacks.onLogout();
-            },
+        ),
+
+        // ============================================================
+        // 🕹️ ARCADE MINI GAME
+        // ============================================================
+        if (isArcade)
+          const Positioned.fill(
+            child: IgnorePointer(
+              ignoring: true,
+              child: Opacity(
+                opacity: 0.32,
+                child: ArcadeMiniGameWidget(),
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          _buildDeleteButton(context),
-        ],
-      ),
+      ],
     );
   }
 
@@ -129,107 +180,220 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileCard(BuildContext context) {
     final user = _user!;
     final theme = Theme.of(context);
+    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
 
-    return Card(
-      elevation: 24,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-        side: BorderSide(
-          color: theme.colorScheme.primary.withValues(alpha: 0.65),
-          width: 2,
+    return Container(
+      decoration: isArcade
+          ? BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.secondary.withValues(
+              alpha: 0.35,
+            ),
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+        ],
+      )
+          : null,
+      child: Card(
+        elevation: isArcade ? 0 : 24,
+        color: isArcade
+            ? theme.colorScheme.surface.withValues(alpha: 0.9)
+            : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            isArcade ? 8 : 28,
+          ),
+          side: BorderSide(
+            color: theme.colorScheme.primary.withValues(
+              alpha: isArcade ? 1.0 : 0.65,
+            ),
+            width: isArcade ? 2.5 : 2,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            // ✅ Avatar reale con cosmetici (cliccabile per aprire la personalizzazione)
-            GestureDetector(
-              onTap: () async {
-                widget.callbacks.onShowCustomization();
-                // Ricarica i dati non appena si torna dalla schermata di personalizzazione
-                await _loadUserData();
-              },
-              child: AvatarView(
-                cosmetics: _equippedCosmetics,
-                size: 140,
-                scale: 1.2,
-                verticalOffset: 4,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              // ========================================================
+              // HEADER ARCADE (Titolo dinamico basato sul livello)
+              // ========================================================
+              if (isArcade) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: Text(
+                    _getPlayerTitle(user.livello),
+                    style: TextStyle(
+                      fontFamily: 'QuesterPixel',
+                      fontSize: 10,
+                      color: theme.colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+              ],
+
+              // ========================================================
+              // AVATAR
+              // ========================================================
+              GestureDetector(
+                onTap: () async {
+                  widget.callbacks.onShowCustomization();
+                  await _loadUserData();
+                },
+                child: AvatarView(
+                  cosmetics: _equippedCosmetics,
+                  size: 140,
+                  scale: 1.2,
+                  verticalOffset: 4,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            // Username con pulsante modifica
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '✦ ${user.username} ✦',
-                  style: theme.textTheme.headlineMedium?.copyWith(
+
+              const SizedBox(height: 12),
+
+              // ========================================================
+              // USERNAME
+              // ========================================================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    isArcade
+                        ? '[ ${user.username} ]'
+                        : '✦ ${user.username} ✦',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  GestureDetector(
+                    onTap: () => _showEditUsernameDialog(context),
+                    child: Icon(
+                      Icons.edit,
+                      size: 20,
+                      color: theme.colorScheme.secondary.withValues(
+                        alpha: 0.6,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // ========================================================
+              // LIVELLO / STAGE
+              // ========================================================
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: isArcade ? 6 : 4,
+                ),
+                decoration: BoxDecoration(
+                  color: isArcade
+                      ? theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.8)
+                      : theme.colorScheme.primaryContainer
+                      .withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(
+                    isArcade ? 4 : 12,
+                  ),
+                  border: Border.all(
+                    color: theme.colorScheme.secondary.withValues(
+                      alpha: isArcade ? 0.7 : 0.5,
+                    ),
+                    width: isArcade ? 1.5 : 1,
+                  ),
+                ),
+                child: Text(
+                  isArcade
+                      ? 'STAGE ${user.livello} / 50'
+                      : 'Livello ${user.livello}',
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.secondary,
+                    letterSpacing: isArcade ? 1.5 : 0,
                   ),
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => _showEditUsernameDialog(context),
-                  child: Icon(
-                    Icons.edit,
-                    size: 20,
-                    color: theme.colorScheme.secondary.withValues(alpha: 0.6),
+              ),
+
+              const SizedBox(height: 16),
+
+              Divider(
+                color: theme.colorScheme.secondary.withValues(
+                  alpha: 0.35,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ========================================================
+              // XP PROGRESS
+              // ========================================================
+              FantasyXpProgress(
+                xpTotale: user.xpTotale,
+                livello: user.livello,
+                xpProgress: getXpProgress(
+                  user.xpTotale,
+                  user.livello,
+                ),
+                xpInCurrentLevel: getXpInCurrentLevel(
+                  user.xpTotale,
+                  user.livello,
+                ),
+                xpNeededForLevel: getXpRequiredForLevel(
+                  user.livello,
+                ),
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                isArcade
+                    ? 'NEXT STAGE BONUS: +${getLevelUpCoins(user.livello)} COINS'
+                    : 'Prossimo level-up: +${getLevelUpCoins(user.livello)} monete',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ========================================================
+              // STATISTICHE
+              // ========================================================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  FantasyStatItem(
+                    icon: Icons.star,
+                    value: '${user.xpTotale}',
+                    label: isArcade
+                        ? 'SCORE'
+                        : 'XP TOTALI',
+                    color: FantasyGold,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Livello
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.secondary.withValues(alpha: 0.5),
-                ),
+
+                  FantasyCoinStatItem(
+                    value: '${user.coins}',
+                  ),
+                ],
               ),
-              child: Text(
-                'Livello ${user.livello}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.secondary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Divider(color: theme.colorScheme.secondary.withValues(alpha: 0.35)),
-            const SizedBox(height: 16),
-            // XP Progress
-            FantasyXpProgress(
-              xpTotale: user.xpTotale,
-              livello: user.livello,
-              xpProgress: getXpProgress(user.xpTotale, user.livello),
-              xpInCurrentLevel: getXpInCurrentLevel(user.xpTotale, user.livello),
-              xpNeededForLevel: getXpRequiredForLevel(user.livello),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Prossimo level-up: +${getLevelUpCoins(user.livello)} monete',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Statistiche
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                FantasyStatItem(
-                  icon: Icons.star,
-                  value: '${user.xpTotale}',
-                  label: 'XP TOTALI',
-                  color: FantasyGold,
-                ),
-                FantasyCoinStatItem(value: '${user.coins}'),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -237,81 +401,192 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Pulsante elimina account
   Widget _buildDeleteButton(BuildContext context) {
-    return OutlinedButton(
-      onPressed: () => _showDeleteAccountDialog(context),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.red.withValues(alpha: 0.7),
-        side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () => _showDeleteAccountDialog(context),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red.withValues(
+            alpha: 0.8,
+          ),
+          side: BorderSide(
+            color: Colors.red.withValues(alpha: 0.6),
+            width: isArcade ? 1.5 : 1,
+          ),
+          padding: const EdgeInsets.symmetric(
+            vertical: 12,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              isArcade ? 4 : 12,
+            ),
+          ),
+        ),
+        child: Text(
+          isArcade
+              ? 'GAME OVER (DELETE)'
+              : 'Lascia il Regno',
+          style: TextStyle(
+            fontFamily: isArcade
+                ? 'QuesterPixel'
+                : null,
+          ),
         ),
       ),
-      child: const Text('Lascia il Regno'),
     );
   }
 
   /// Dialog modifica username
   void _showEditUsernameDialog(BuildContext context) {
-    final controller = TextEditingController(text: _user?.username ?? '');
+    final controller = TextEditingController(
+      text: _user?.username ?? '',
+    );
+
+    final isArcade =
+        ThemeManager.currentTheme == AppTheme.arcade;
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Modifica Username'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Nuovo username',
-            border: OutlineInputBorder(),
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: isArcade
+              ? Theme.of(context).colorScheme.surface
+              : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              isArcade ? 6 : 24,
+            ),
+            side: isArcade
+                ? BorderSide(
+              color: Theme.of(context)
+                  .colorScheme
+                  .secondary,
+              width: 2,
+            )
+                : BorderSide.none,
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annulla'),
+          title: Text(
+            'Modifica Username',
+            style: TextStyle(
+              fontFamily: isArcade
+                  ? 'QuesterPixel'
+                  : null,
+            ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final newUsername = controller.text.trim();
-              if (newUsername.isNotEmpty && newUsername.length >= 3) {
-                widget.callbacks.onUpdateUsername(newUsername);
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: 'Nuovo username',
+              filled: isArcade,
+              fillColor: isArcade
+                  ? Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.4)
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(
+                  isArcade ? 4 : 12,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
                 Navigator.pop(dialogContext);
-                await _loadUserData(); // Aggiorna i dati sul momento
-              }
-            },
-            child: const Text('Conferma'),
-          ),
-        ],
-      ),
+              },
+              child: const Text('Annulla'),
+            ),
+
+            ElevatedButton(
+              onPressed: () async {
+                final newUsername =
+                controller.text.trim();
+
+                if (newUsername.isNotEmpty &&
+                    newUsername.length >= 3) {
+                  widget.callbacks.onUpdateUsername(
+                    newUsername,
+                  );
+
+                  Navigator.pop(dialogContext);
+
+                  await _loadUserData();
+                }
+              },
+              child: const Text('Conferma'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   /// Dialog elimina account
   void _showDeleteAccountDialog(BuildContext context) {
+    final isArcade =
+        ThemeManager.currentTheme == AppTheme.arcade;
+
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Elimina Account'),
-        content: const Text('Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annulla'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              widget.callbacks.onDeleteAccount();
-              Navigator.pop(dialogContext);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: isArcade
+              ? Theme.of(context).colorScheme.surface
+              : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              isArcade ? 6 : 24,
             ),
-            child: const Text('Elimina'),
+            side: isArcade
+                ? const BorderSide(
+              color: Colors.red,
+              width: 2,
+            )
+                : BorderSide.none,
           ),
-        ],
-      ),
+          title: Text(
+            'Elimina Account',
+            style: TextStyle(
+              fontFamily: isArcade
+                  ? 'QuesterPixel'
+                  : null,
+            ),
+          ),
+          content: const Text(
+            'Sei sicuro di voler eliminare il tuo account? '
+                'Questa azione è irreversibile.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Annulla'),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                widget.callbacks.onDeleteAccount();
+                Navigator.pop(dialogContext);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    isArcade ? 4 : 8,
+                  ),
+                ),
+              ),
+              child: const Text('Elimina'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

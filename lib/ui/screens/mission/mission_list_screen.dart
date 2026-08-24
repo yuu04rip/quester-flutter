@@ -2,15 +2,16 @@
 
 import 'package:flutter/material.dart';
 import '/data/models/mission_with_subtasks.dart';
-import '/data/models/mission_type.dart';
 import '/repository/mission_repository.dart';
 import '/repository/user_repository.dart';
 import '/data/session/session_manager.dart';
 import '/domain/service/mission_service.dart';
 import '../mission/components/mission_card.dart';
-import '../mission/components/filter_status.dart'; // ✅ Importazione del nuovo file centralizzato
+import '../mission/components/filter_status.dart';
+import '../mission/components/mission_list_header.dart';
+import '../mission/components/mission_form_dialog.dart';
+import '../mission/components/mission_detail_dialog.dart';
 
-/// Schermata lista missioni dinamica basata sul tema attivo
 class MissionListScreen extends StatefulWidget {
   final MissionService missionService;
   final MissionRepository missionRepository;
@@ -83,9 +84,15 @@ class _MissionListScreenState extends State<MissionListScreen> {
       );
     }
 
+    final activeCount = _missions.where((m) => !m.mission.completed).length;
+
     return Column(
       children: [
-        _buildHeader(context),
+        MissionListHeader(
+          username: _username,
+          activeMissionsCount: activeCount,
+          onAddPressed: () => _showAddMissionDialog(context),
+        ),
         _buildSearchBar(context),
         _buildFilterChips(context),
         Expanded(
@@ -99,9 +106,15 @@ class _MissionListScreenState extends State<MissionListScreen> {
               return MissionCard(
                 missionWithTasks: missionWithTasks,
                 onClick: () => _showMissionDetail(context, missionWithTasks),
+                onCompleteClick: () => _handleCompleteMission(context, missionWithTasks),
                 onEditClick: () => _showEditMissionDialog(context, missionWithTasks),
                 onResetClick: () => _showResetMissionDialog(context, missionWithTasks),
                 onDeleteClick: () => _handleDeleteMission(context, missionWithTasks),
+                // 👈 AGGIUNTO: Collega il click dei subtask direttamente al servizio
+                onSubTaskToggled: (subTask, done) async {
+                  await widget.missionService.toggleSubTask(subTask, done);
+                  _loadData();
+                },
               );
             },
           ),
@@ -110,51 +123,16 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  /// Header con titolo e contatori
-  Widget _buildHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    final accentColor = theme.colorScheme.secondary;
+  Future<void> _handleCompleteMission(BuildContext context, MissionWithSubTasks missionWithTasks) async {
+    final userId = await widget.sessionManager.loggedUserId();
+    if (userId == null) return;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '✦ Registro di $_username ✦',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: accentColor,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${_missions.where((m) => !m.mission.completed).length} missioni attive da compiere',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                ),
-              ),
-            ],
-          ),
-          FloatingActionButton(
-            onPressed: () => _showAddMissionDialog(context),
-            backgroundColor: accentColor,
-            foregroundColor: theme.colorScheme.onSecondary,
-            elevation: 4,
-            mini: true,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.add_rounded, size: 24),
-          ),
-        ],
-      ),
-    );
+    if (!missionWithTasks.mission.completed) {
+      await widget.missionService.completeMission(missionWithTasks.mission, userId);
+      _loadData();
+    }
   }
 
-  /// Barra di ricerca stilizzata dinamicamente
   Widget _buildSearchBar(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.secondary;
@@ -189,7 +167,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  /// Filtri a chip orizzontali
   Widget _buildFilterChips(BuildContext context) {
     return SizedBox(
       height: 52,
@@ -217,11 +194,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: isSelected ? theme.colorScheme.onSecondary : accentColor,
-          ),
+          Icon(icon, size: 14, color: isSelected ? theme.colorScheme.onSecondary : accentColor),
           const SizedBox(width: 6),
           Text(label),
         ],
@@ -244,7 +217,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  /// Stato vuoto tematico
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.secondary;
@@ -259,11 +231,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
               color: accentColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.shield_outlined,
-              size: 48,
-              color: accentColor.withValues(alpha: 0.7),
-            ),
+            child: Icon(Icons.shield_outlined, size: 48, color: accentColor.withValues(alpha: 0.7)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -276,323 +244,72 @@ class _MissionListScreenState extends State<MissionListScreen> {
           const SizedBox(height: 4),
           Text(
             'Forgia una nuova missione per continuare l\'avventura',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
       ),
     );
   }
 
-  /// Dettaglio missione in modale
   void _showMissionDetail(BuildContext context, MissionWithSubTasks missionWithTasks) {
-    final theme = Theme.of(context);
-    final accentColor = theme.colorScheme.secondary;
-    final mission = missionWithTasks.mission;
-    final missionType = MissionType.fromDbValue(mission.type);
-    final progress = missionWithTasks.progress;
-
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                mission.title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-            if (mission.completed)
-              const Icon(Icons.check_circle_rounded, color: Colors.green),
-          ],
-        ),
-        content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.8,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    missionType.label.toUpperCase(),
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentColor),
-                  ),
-                ),
-                if (mission.description.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(mission.description, style: const TextStyle(fontSize: 14)),
-                ],
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(Icons.star_rounded, size: 18, color: accentColor),
-                    const SizedBox(width: 4),
-                    Text('+${missionType.xpReward} XP',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
-                    const SizedBox(width: 16),
-                    Image.asset('assets/images/coin.png', width: 18, height: 18),
-                    const SizedBox(width: 4),
-                    Text('+${missionType.coinReward} Monete',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 8,
-                          backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            mission.completed ? Colors.green : accentColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text('${(progress * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Subtasks (${missionWithTasks.completedCount}/${missionWithTasks.totalCount}):',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                if (missionWithTasks.subTasks.isEmpty)
-                  const Text('Nessuna subtask associata.', style: TextStyle(color: Colors.grey, fontSize: 13))
-                else
-                  ...missionWithTasks.subTasks.map((subTask) {
-                    return CheckboxListTile(
-                      title: Text(subTask.text, style: const TextStyle(fontSize: 13)),
-                      value: subTask.done,
-                      activeColor: accentColor,
-                      checkColor: theme.colorScheme.onSecondary,
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      onChanged: (value) async {
-                        if (value != null) {
-                          await widget.missionService.toggleSubTask(subTask, value);
-                          if (!dialogContext.mounted) return;
-                          Navigator.pop(dialogContext);
-                          _loadData();
-                        }
-                      },
-                    );
-                  }),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Chiudi', style: TextStyle(color: accentColor)),
-          ),
-        ],
+      builder: (context) => MissionDetailDialog(
+        missionWithTasks: missionWithTasks,
+        missionService: widget.missionService,
+        onSubTaskToggled: _loadData,
       ),
     );
   }
 
-  /// Modale Aggiungi Missione
   void _showAddMissionDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    final accentColor = theme.colorScheme.secondary;
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    String selectedType = 'GIORNALIERO';
-
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Forgia Nuova Missione', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Titolo dell\'impresa',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Descrizione (opzionale)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo di Missione',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: ['GIORNALIERO', 'SETTIMANALE', 'SPECIALE']
-                      .map((type) => DropdownMenuItem(
-                    value: type,
-                    child: Text(type[0] + type.substring(1).toLowerCase()),
-                  ))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => selectedType = value);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Annulla', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.trim().isNotEmpty) {
-                  await widget.missionService.createMissionFromForm(
-                    title: titleController.text.trim(),
-                    description: descriptionController.text.trim(),
-                    type: selectedType,
-                    dueDate: null,
-                    subtasks: [],
-                  );
-                  if (!dialogContext.mounted) return;
-                  Navigator.pop(dialogContext);
-                  _loadData();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                foregroundColor: theme.colorScheme.onSecondary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Crea', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+      builder: (context) => MissionFormDialog(
+        title: 'Forgia Nuova Missione',
+        confirmButtonText: 'Crea',
+        onSubmit: (title, description, type, subtasks) async {
+          await widget.missionService.createMissionFromForm(
+            title: title,
+            description: description,
+            type: type,
+            dueDate: null,
+            subtasks: subtasks,
+          );
+          _loadData();
+        },
       ),
     );
   }
 
-  /// Modale Modifica Missione
   void _showEditMissionDialog(BuildContext context, MissionWithSubTasks missionWithTasks) {
-    final theme = Theme.of(context);
-    final accentColor = theme.colorScheme.secondary;
-    final titleController = TextEditingController(text: missionWithTasks.mission.title);
-    final descriptionController = TextEditingController(text: missionWithTasks.mission.description);
-    String selectedType = missionWithTasks.mission.type;
-
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Modifica Impresa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Titolo',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Descrizione',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: ['GIORNALIERO', 'SETTIMANALE', 'SPECIALE']
-                      .map((type) => DropdownMenuItem(
-                    value: type,
-                    child: Text(type[0] + type.substring(1).toLowerCase()),
-                  ))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => selectedType = value);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Annulla', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.trim().isNotEmpty) {
-                  await widget.missionService.updateMissionFromForm(
-                    mission: missionWithTasks.mission,
-                    newTitle: titleController.text.trim(),
-                    newDescription: descriptionController.text.trim(),
-                    newType: selectedType,
-                    newSubtasksText: [],
-                  );
-                  if (!dialogContext.mounted) return;
-                  Navigator.pop(dialogContext);
-                  _loadData();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                foregroundColor: theme.colorScheme.onSecondary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Salva', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+      builder: (context) => MissionFormDialog(
+        title: 'Modifica Impresa',
+        confirmButtonText: 'Salva',
+        initialTitle: missionWithTasks.mission.title,
+        initialDescription: missionWithTasks.mission.description,
+        initialType: missionWithTasks.mission.type,
+        initialSubtasks: missionWithTasks.subTasks.map((s) => s.text).toList(),
+        onSubmit: (title, description, type, subtasks) async {
+          await widget.missionService.updateMissionFromForm(
+            mission: missionWithTasks.mission,
+            newTitle: title,
+            newDescription: description,
+            newType: type,
+            newSubtasksText: subtasks,
+          );
+          _loadData();
+        },
       ),
     );
   }
 
-  /// Conferma Reset Missione
   void _showResetMissionDialog(BuildContext context, MissionWithSubTasks missionWithTasks) {
+    final missionId = missionWithTasks.mission.id;
+    if (missionId == null) return;
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -608,7 +325,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await widget.missionService.resetMission(missionWithTasks.mission.id);
+              await widget.missionService.resetMission(missionId);
               if (!dialogContext.mounted) return;
               Navigator.pop(dialogContext);
               _loadData();
@@ -625,7 +342,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  /// Eliminazione con SnackBar Undo
   Future<void> _handleDeleteMission(
       BuildContext context,
       MissionWithSubTasks missionWithTasks,
@@ -650,7 +366,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
             _loadData();
           },
         ),
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );

@@ -32,6 +32,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
   late Animation<double> _scaleAnimation;
   late Animation<double> _glowAnimation;
   late Animation<double> _particleAnimation;
+  late Animation<double> _pressTranslateAnimation; // 👈 Animazione per l'effetto "pressione fisica" arcade
 
   @override
   void initState() {
@@ -42,6 +43,14 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
 
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
+      ),
+    );
+
+    // 🕹️ Sposta il bottone in basso di 4 pixel quando viene premuto (effetto pulsante meccanico)
+    _pressTranslateAnimation = Tween<double>(begin: 0.0, end: 4.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
@@ -104,10 +113,15 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
               if (_glowAnimation.value > 0.0)
                 _buildGlow(isArcade),
 
-              // ✨ Bottone principale
-              Transform.scale(
-                scale: _scaleAnimation.value,
-                child: _buildButton(isArcade),
+              // ✨ Bottone principale con transizione fisica di pressione (speciale per Arcade)
+              Transform.translate(
+                offset: Offset(0, isArcade ? _pressTranslateAnimation.value : 0),
+                child: Transform.scale(
+                  scale: isArcade ? 1.0 : _scaleAnimation.value, // Se arcade usiamo la traslazione invece dello scale
+                  child: SizedBox.expand(
+                    child: _buildButton(isArcade),
+                  ),
+                ),
               ),
             ],
           ),
@@ -160,11 +174,15 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Bottone principale unificato (Stile Pixel / Fantasy + Effetto Burst)
+  /// ✨ Bottone principale unificato (Stile Pixel Arcade con "spessore 3D" o Fantasy)
   Widget _buildButton(bool isArcade) {
     final bgColor = isArcade ? const Color(0xFF00FF41) : FantasyGold;
     final textColor = isArcade ? const Color(0xFF0A0A0F) : FantasyBackground;
     final borderRadius = isArcade ? 4.0 : 14.0;
+
+    // Per l'arcade, se è premuto (_pressTranslateAnimation.value > 0), azzeriamo l'ombra inferiore
+    // per simulare che il tasto è andato a fine corsa contro il pannello.
+    final isPressed = isArcade && _pressTranslateAnimation.value > 1.0;
 
     return Opacity(
       opacity: widget.loading ? 0.6 : 1.0,
@@ -172,10 +190,13 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(borderRadius),
           boxShadow: [
+            // Ombra dinamica: da profonda e staccata a piatta quando viene premuto (effetto bottone fisico)
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: isArcade
+                  ? (isPressed ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF008822))
+                  : Colors.black.withValues(alpha: 0.4),
+              blurRadius: isPressed ? 2 : 8,
+              offset: Offset(0, isPressed ? 1 : (isArcade ? 5 : 4)), // Il bordo inferiore spessa simula il corpo del tasto
             ),
           ],
         ),
@@ -184,16 +205,16 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
           style: ElevatedButton.styleFrom(
             backgroundColor: bgColor,
             foregroundColor: textColor,
-            elevation: 4,
+            elevation: 0, // Gestito interamente dal DecoratedBox per un controllo pixel-art perfetto
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(borderRadius),
               side: BorderSide(
-                color: isArcade ? bgColor : Colors.white.withValues(alpha: 0.5),
-                width: isArcade ? 3 : 1.5,
+                color: isArcade ? const Color(0xFF003311) : Colors.white.withValues(alpha: 0.5),
+                width: isArcade ? 2 : 1.5,
               ),
             ),
             padding: EdgeInsets.symmetric(
-              horizontal: isArcade ? 28 : 24,
+              horizontal: 16,
               vertical: isArcade ? 16 : 12,
             ),
           ),
@@ -208,6 +229,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
           )
               : Text(
             widget.text.toUpperCase(),
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: isArcade ? 18 : 16,
               fontWeight: FontWeight.bold,
@@ -239,7 +261,7 @@ class _ParticlePainter extends CustomPainter {
     final centerY = size.height / 2;
     final random = math.Random(42);
 
-    for (int i = 0; i < particleCount; i++) {
+    for (int i = 0; i < particleCount; i++ ) {
       final angle = (2 * math.pi * i / particleCount) + random.nextDouble() * 0.5;
       final distance = 20 + 80 * progress;
       final px = centerX + math.cos(angle) * distance;
@@ -269,9 +291,9 @@ class _ParticlePainter extends CustomPainter {
       if (progress > 0.3) {
         final trailAlpha = alpha * 0.3;
         canvas.drawCircle(
-            Offset(px - 5, py - 5),
-            particleSize * 0.6,
-            Paint()..color = color.withValues(alpha: trailAlpha),
+          Offset(px - 5, py - 5),
+          particleSize * 0.6,
+          Paint()..color = color.withValues(alpha: trailAlpha),
         );
       }
     }

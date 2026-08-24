@@ -1,24 +1,26 @@
-// lib/screens/mission/mission_list_header.dart
+// lib/screens/mission/components/mission_list_header.dart
 
 import 'package:flutter/material.dart';
 
-/// Header della lista missioni
 class MissionListHeader extends StatelessWidget {
   final String username;
-  final VoidCallback onAddClick;
+  final int activeMissionsCount;
+  final VoidCallback onAddPressed;
 
   const MissionListHeader({
     super.key,
     required this.username,
-    required this.onAddClick,
+    required this.activeMissionsCount,
+    required this.onAddPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final accentColor = theme.colorScheme.secondary;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -26,27 +28,30 @@ class MissionListHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Ciao, $username!',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                '✦ Registro di $username ✦',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
-                'Bacheca Missioni',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
+                '$activeMissionsCount missioni attive da compiere',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                 ),
               ),
             ],
           ),
-          ElevatedButton.icon(
-            onPressed: onAddClick,
-            icon: const Icon(Icons.add),
-            label: const Text('Nuova'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
+          FloatingActionButton(
+            onPressed: onAddPressed,
+            backgroundColor: accentColor,
+            foregroundColor: theme.colorScheme.onSecondary,
+            elevation: 4,
+            mini: true,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.add_rounded, size: 24),
           ),
         ],
       ),

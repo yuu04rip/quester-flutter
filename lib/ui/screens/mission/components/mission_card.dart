@@ -9,17 +9,21 @@ import '/data/models/subtask.dart';
 class MissionCard extends StatelessWidget {
   final MissionWithSubTasks missionWithTasks;
   final VoidCallback onClick;
+  final VoidCallback onCompleteClick;
   final VoidCallback onEditClick;
   final VoidCallback onDeleteClick;
   final VoidCallback? onResetClick;
+  final void Function(SubTask subTask, bool done)? onSubTaskToggled; // 👈 Aggiunto callback per i subtask
 
   const MissionCard({
     super.key,
     required this.missionWithTasks,
     required this.onClick,
+    required this.onCompleteClick,
     required this.onEditClick,
     required this.onDeleteClick,
     this.onResetClick,
+    this.onSubTaskToggled,
   });
 
   @override
@@ -64,10 +68,28 @@ class MissionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: Titolo + Badge Tipo Missione
+                // Header: Pulsante Completamento + Titolo + Badge Tipo Missione (perfettamente allineati)
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // Pulsante rapido per completare
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: onCompleteClick,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Icon(
+                            isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                            color: isCompleted ? Colors.green : accentColor,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Titolo
                     Expanded(
                       child: Text(
                         mission.title,
@@ -79,6 +101,7 @@ class MissionCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
+                    // Badge Tipo Missione
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -100,12 +123,15 @@ class MissionCard extends StatelessWidget {
                 ),
                 if (mission.description.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text(
-                    mission.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  Padding(
+                    padding: const EdgeInsets.only(left: 36), // Allineato col testo del titolo
+                    child: Text(
+                      mission.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -232,7 +258,14 @@ class MissionCard extends StatelessWidget {
             height: 18,
             child: Checkbox(
               value: task.done,
-              onChanged: null, // Sola lettura nella card, si spunta nel dettaglio
+              // 👈 Collegato al callback se passato, altrimenti disabilitato se missione completata
+              onChanged: missionWithTasks.mission.completed || onSubTaskToggled == null
+                  ? null
+                  : (bool? value) {
+                if (value != null) {
+                  onSubTaskToggled!(task, value);
+                }
+              },
               activeColor: accentColor,
               checkColor: theme.colorScheme.onSecondary,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

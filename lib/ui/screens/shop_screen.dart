@@ -39,7 +39,7 @@ class _ShopScreenState extends State<ShopScreen> {
     _loadShopData();
   }
 
-  /// Carica i dati del negozio
+  /// Carica i dati del negozio e ordina gli oggetti (posseduti in fondo)
   Future<void> _loadShopData() async {
     final userId = await widget.sessionManager.loggedUserId();
 
@@ -51,9 +51,20 @@ class _ShopScreenState extends State<ShopScreen> {
         ? await widget.userRepository.getUserById(userId)
         : null;
 
+    final ownedIds = owned.map((o) => o.itemId).toSet().cast<String>();
+
+    // Ordina gli oggetti: prima quelli non posseduti, poi quelli posseduti in fondo
+    items.sort((a, b) {
+      final aOwned = ownedIds.contains(a.itemId);
+      final bOwned = ownedIds.contains(b.itemId);
+
+      if (aOwned == bOwned) return 0;
+      return aOwned ? 1 : -1;
+    });
+
     setState(() {
       _shopItems = items;
-      _ownedItemIds = owned.map((o) => o.itemId).toSet().cast<String>();
+      _ownedItemIds = ownedIds;
       _userCoins = user?.coins ?? 0;
       _isLoading = false;
     });
@@ -153,7 +164,7 @@ class _ShopScreenState extends State<ShopScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.75,  // ✅ Fix overflow
+        childAspectRatio: 0.75, // Fix overflow
       ),
       itemCount: _shopItems.length,
       itemBuilder: (context, index) {
@@ -180,13 +191,13 @@ class _ShopScreenState extends State<ShopScreen> {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8),  // ✅ Ridotto da 12 a 8
+        padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,  // ✅ Aggiunto
+          mainAxisSize: MainAxisSize.min,
           children: [
             _buildShopItemIcon(context, item, isOwned),
-            const SizedBox(height: 4),  // ✅ Ridotto da 8 a 4
+            const SizedBox(height: 4),
             Text(
               item.name,
               textAlign: TextAlign.center,
@@ -194,23 +205,23 @@ class _ShopScreenState extends State<ShopScreen> {
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 12,  // ✅ Ridotto
+                fontSize: 12,
                 color: isOwned
                     ? theme.colorScheme.onSurfaceVariant
                     : theme.colorScheme.onSurface,
               ),
             ),
-            const SizedBox(height: 4),  // ✅ Ridotto da 8 a 4
+            const SizedBox(height: 4),
             if (isOwned)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.lock, size: 12, color: theme.colorScheme.secondary),  // ✅ Ridotto
+                  Icon(Icons.lock, size: 12, color: theme.colorScheme.secondary),
                   const SizedBox(width: 4),
                   Text(
                     'Posseduto',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 9,  // ✅ Ridotto
+                      fontSize: 9,
                       color: theme.colorScheme.secondary,
                     ),
                   ),
@@ -222,7 +233,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 children: [
                   Image.asset(
                     'assets/images/coin.png',
-                    width: 14,  // ✅ Ridotto da 16 a 14
+                    width: 14,
                     height: 14,
                   ),
                   const SizedBox(width: 4),
@@ -230,29 +241,29 @@ class _ShopScreenState extends State<ShopScreen> {
                     '${item.price}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,  // ✅ Ridotto
+                      fontSize: 12,
                       color: FantasyGold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),  // ✅ Ridotto da 8 a 4
+              const SizedBox(height: 4),
               SizedBox(
                 width: double.infinity,
-                height: 26,  // ✅ Ridotto da 30 a 26
+                height: 26,
                 child: ElevatedButton(
                   onPressed: () => _handleBuyItem(item),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.secondary,
                     foregroundColor: theme.colorScheme.onSecondary,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),  // ✅ Ridotto
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
                   child: const Text(
                     'ACQUISTA',
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),  // ✅ Ridotto
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

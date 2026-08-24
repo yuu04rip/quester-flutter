@@ -7,7 +7,7 @@ enum VerificationLevel {
 }
 
 class Mission {
-  final int id;
+  final int? id;
   final int userId;
   final String title;
   final String description;
@@ -22,7 +22,7 @@ class Mission {
   final String verificationLevel;
 
   Mission({
-    this.id = 0,
+    this.id,
     required this.userId,
     required this.title,
     this.description = '',
@@ -39,7 +39,9 @@ class Mission {
 
   // Conversione da/verso Map per il database
   Map<String, dynamic> toMap() => {
-    'id': id,
+
+
+    if (id != null && id != 0) 'id': id,
     'userId': userId,
     'title': title,
     'description': description,
@@ -55,7 +57,7 @@ class Mission {
   };
 
   factory Mission.fromMap(Map<String, dynamic> map) => Mission(
-    id: map['id'] ?? 0,
+    id: map['id'],
     userId: map['userId'] ?? 0,
     title: map['title'] ?? '',
     description: map['description'] ?? '',

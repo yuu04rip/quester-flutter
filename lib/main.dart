@@ -20,7 +20,6 @@ import 'domain/service/reminder_service.dart';
 import 'domain/service/shop_service.dart';
 import 'ui/screens/auth_screen.dart';
 import 'ui/screens/nav_bar.dart';
-import 'ui/screens/nav_screens.dart';
 import 'ui/theme/app_theme.dart';
 
 // Plugin per le notifiche locali

@@ -1,7 +1,6 @@
 // lib/screens/profile_constants.dart
 
-import 'package:flutter/material.dart';
-import '../theme/colors.dart';  // ✅ Import per i colori
+// ✅ Import per i colori
 
 // ============================================================
 // 1. SISTEMA XP E LIVELLI (LINEARE)

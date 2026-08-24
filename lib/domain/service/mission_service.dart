@@ -66,7 +66,7 @@ class MissionService {
     await missionRepository.createMission(mission, cleanSubtasks);
   }
 
-  /// ✅ NUOVO: Aggiorna missione dal form
+  /// Aggiorna missione dal form
   Future<void> updateMissionFromForm({
     required Mission mission,
     required String newTitle,
@@ -108,8 +108,14 @@ class MissionService {
       xpReward: validXp,
     );
 
+    // Gestione sicura dell'id poichè ora è int? nel nuovo modello
+    final missionId = mission.id;
+    if (missionId == null) {
+      throw Exception('Impossibile aggiornare una missione senza ID');
+    }
+
     final subtaskList = cleanSubtasks.map((text) => SubTask(
-      missionId: mission.id,
+      missionId: missionId,
       text: text,
       done: false,
     )).toList();
@@ -119,6 +125,9 @@ class MissionService {
 
   /// Completamento missione
   Future<void> completeMission(Mission mission, int userId) async {
+    final missionId = mission.id;
+    if (missionId == null) return;
+
     if (!mission.completed) {
       final user = await userRepository.getUserById(userId);
       if (user == null) throw Exception('Utente non trovato');
@@ -127,7 +136,7 @@ class MissionService {
       final finalXp = missionType.xpReward;
       final finalCoins = missionType.coinReward;
 
-      await missionRepository.markMissionCompleted(mission.id);
+      await missionRepository.markMissionCompleted(missionId);
       await userRepository.addXp(userId, finalXp);
       await userRepository.addCoins(userId, finalCoins);
     }
@@ -168,7 +177,7 @@ class MissionService {
     await missionRepository.deleteMission(mission);
   }
 
-  /// ✅ NUOVO: Ripristina missione eliminata
+  /// Ripristina missione eliminata
   Future<void> restoreMission(Mission mission, List<SubTask> subTasks) async {
     await missionRepository.restoreMission(mission, subTasks);
   }
