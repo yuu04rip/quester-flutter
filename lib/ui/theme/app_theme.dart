@@ -1,4 +1,4 @@
-// lib/ui/theme/app_theme.dart
+// lib/theme/app_theme.dart
 
 import 'package:flutter/material.dart';
 import 'colors.dart';
@@ -6,7 +6,8 @@ import 'colors.dart';
 /// Tipo di tema
 enum AppTheme {
   fantasy,
-  arcade;
+  arcade,
+  regale;
 
   static AppTheme fromString(String value) {
     return AppTheme.values.firstWhere(
@@ -20,7 +21,8 @@ enum AppTheme {
 class ThemeManager {
   ThemeManager._();
 
-  static final ValueNotifier<AppTheme> themeNotifier = ValueNotifier<AppTheme>(AppTheme.fantasy);
+  static final ValueNotifier<AppTheme> themeNotifier =
+  ValueNotifier<AppTheme>(AppTheme.fantasy);
 
   static AppTheme get currentTheme => themeNotifier.value;
 
@@ -32,6 +34,7 @@ class ThemeManager {
     final themeId = switch (theme) {
       AppTheme.fantasy => 'theme_fantasy',
       AppTheme.arcade => 'theme_arcade',
+      AppTheme.regale => 'reward_tema_regale', // ID unificato standard
     };
     return ownedItems.contains(themeId);
   }
@@ -40,13 +43,13 @@ class ThemeManager {
     return switch (theme) {
       AppTheme.fantasy => 'Fantasy',
       AppTheme.arcade => 'Arcade',
+      AppTheme.regale => 'Regale 3D',
     };
   }
 }
 
 /// Tema dell'applicazione
 class QuesterTheme {
-  /// Ottiene il ThemeData per il tema specificato
   static ThemeData getThemeData({
     required AppTheme themeType,
     bool darkTheme = true,
@@ -59,23 +62,181 @@ class QuesterTheme {
       colorScheme: colorScheme,
       textTheme: textTheme,
       scaffoldBackgroundColor: colorScheme.surface,
-      // Imposta il font globale in base al tema attivo
       fontFamily: themeType == AppTheme.arcade ? 'QuesterPixel' : 'QuesterFantasy',
+
+      // PERSONALIZZAZIONI PER IL TEMA REGALE
+      cardTheme: themeType == AppTheme.regale
+          ? CardThemeData(
+        color: const Color(0xFF181109),
+        elevation: 10,
+        shadowColor: const Color(0xFF000000).withValues(alpha: 0.50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFFD7B46A), width: 1.2),
+        ),
+      )
+          : null,
+
+      appBarTheme: themeType == AppTheme.regale
+          ? const AppBarTheme(
+        backgroundColor: Color(0xFF120D08),
+        foregroundColor: Color(0xFFF4C95D),
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontFamily: 'QuesterFantasy',
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+          color: Color(0xFFF4C95D),
+        ),
+      )
+          : null,
+
+      dialogTheme: themeType == AppTheme.regale
+          ? DialogThemeData(
+        backgroundColor: const Color(0xFF151008),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: Color(0xFFD7B46A), width: 1.5),
+        ),
+      )
+          : null,
+
+      elevatedButtonTheme: themeType == AppTheme.regale
+          ? ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF4C95D),
+          foregroundColor: const Color(0xFF1A1208),
+          disabledBackgroundColor: const Color(0xFF5E4A26),
+          disabledForegroundColor: const Color(0xFFC7B38A),
+          elevation: 6,
+          shadowColor: const Color(0xFF000000).withValues(alpha: 0.45),
+          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFFFFF0CA), width: 1.0),
+          ),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 15.5,
+            letterSpacing: 0.9,
+            fontFamily: 'QuesterFantasy',
+          ),
+        ),
+      )
+          : null,
+
+      inputDecorationTheme: themeType == AppTheme.regale
+          ? InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF140F09),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF8B6A33), width: 1.1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF705427), width: 1.1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFF4C95D), width: 1.8),
+        ),
+        labelStyle: const TextStyle(color: Color(0xFFE0C489), fontFamily: 'QuesterFantasy'),
+        hintStyle: const TextStyle(color: Color(0xFF9D7B43), fontFamily: 'QuesterFantasy'),
+      )
+          : null,
+
+      chipTheme: themeType == AppTheme.regale
+          ? ChipThemeData(
+        backgroundColor: const Color(0xFF1C140B),
+        selectedColor: const Color(0xFF33230F),
+        labelStyle: const TextStyle(color: Color(0xFFFFEEC8), fontFamily: 'QuesterFantasy'),
+        secondaryLabelStyle: const TextStyle(color: Color(0xFFF4C95D), fontFamily: 'QuesterFantasy'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(11),
+          side: const BorderSide(color: Color(0xFFB8914B), width: 1),
+        ),
+      )
+          : null,
+
+      floatingActionButtonTheme: themeType == AppTheme.regale
+          ? const FloatingActionButtonThemeData(
+        backgroundColor: Color(0xFFF4C95D),
+        foregroundColor: Color(0xFF1A1208),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+          side: BorderSide(color: Color(0xFFFFE7B0), width: 1.2),
+        ),
+      )
+          : null,
+
+      navigationBarTheme: themeType == AppTheme.regale
+          ? const NavigationBarThemeData(
+        backgroundColor: Color(0xFF120D08),
+        indicatorColor: Color(0xFF3A2A12),
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(
+            fontFamily: 'QuesterFantasy',
+            fontWeight: FontWeight.w600,
+            color: Color(0xFFF4C95D),
+          ),
+        ),
+      )
+          : null,
+
+      dividerTheme: themeType == AppTheme.regale
+          ? const DividerThemeData(
+        color: Color(0xFF4D3A1C),
+        thickness: 0.8,
+        space: 1,
+      )
+          : null,
     );
   }
 
-  /// Color scheme in base al tema (Arcade potenziato con colori Neon)
   static ColorScheme _getColorScheme(AppTheme themeType, bool darkTheme) {
     if (themeType == AppTheme.arcade) {
       return const ColorScheme.dark(
-        primary: Color(0xFF00FF66),     // Verde Neon vivido arcade
+        primary: Color(0xFF00FF66),
         onPrimary: Color(0xFF0D0221),
-        secondary: Color(0xFFFF007F),   // Rosa Magenta Neon
+        secondary: Color(0xFFFF007F),
         onSecondary: Color(0xFF0D0221),
-        surface: Color(0xFF100323),     // Sfondo scuro sala giochi
-        onSurface: Color(0xFF00FFFF),   // Testo Cyan brillante
+        surface: Color(0xFF100323),
+        onSurface: Color(0xFF00FFFF),
         error: Color(0xFFFF2222),
         onError: Color(0xFF0D0221),
+      );
+    }
+
+    if (themeType == AppTheme.regale) {
+      return const ColorScheme.dark(
+        brightness: Brightness.dark,
+        primary: Color(0xFFF4C95D),
+        onPrimary: Color(0xFF1A1208),
+        primaryContainer: Color(0xFF3A2A12),
+        onPrimaryContainer: Color(0xFFFFF4D6),
+        secondary: Color(0xFFE0A93B),
+        onSecondary: Color(0xFF1A1208),
+        secondaryContainer: Color(0xFF2A1C0C),
+        onSecondaryContainer: Color(0xFFFFE7B0),
+        tertiary: Color(0xFFCBA15C),
+        onTertiary: Color(0xFF1A1208),
+        surface: Color(0xFF0B0805),
+        onSurface: Color(0xFFF8ECD1),
+        surfaceContainerLowest: Color(0xFF090705),
+        surfaceContainerLow: Color(0xFF120D08),
+        surfaceContainer: Color(0xFF181109),
+        surfaceContainerHigh: Color(0xFF21170C),
+        surfaceContainerHighest: Color(0xFF2B1D0F),
+        outline: Color(0xFF6E552B),
+        outlineVariant: Color(0xFF4D3A1C),
+        error: Color(0xFFFF5A7A),
+        onError: Color(0xFF1A0A0E),
       );
     }
 
@@ -83,7 +244,7 @@ class QuesterTheme {
     return darkTheme
         ? const ColorScheme.dark(
       primary: FantasyPurple,
-      onPrimary:FantasyText,
+      onPrimary: FantasyText,
       secondary: FantasyGold,
       onSecondary: FantasyBackground,
       surface: FantasySurface,
@@ -103,7 +264,6 @@ class QuesterTheme {
     );
   }
 
-  /// Text theme in base al tema con i font espliciti
   static TextTheme _getTextTheme(AppTheme themeType) {
     if (themeType == AppTheme.arcade) {
       return const TextTheme(
@@ -118,7 +278,23 @@ class QuesterTheme {
       );
     }
 
-    // Tema Fantasy: Riabilitiamo il font QuesterFantasy
+    if (themeType == AppTheme.regale) {
+      return const TextTheme(
+        headlineLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Color(0xFFF4C95D), letterSpacing: 1.5, fontFamily: 'QuesterFantasy'),
+        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFFFFF4D6), letterSpacing: 1.2, fontFamily: 'QuesterFantasy'),
+        titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Color(0xFFF4C95D), fontFamily: 'QuesterFantasy'),
+        titleMedium: TextStyle(fontSize: 19, fontWeight: FontWeight.w500, color: Color(0xFFE0C489), fontFamily: 'QuesterFantasy'),
+        titleSmall: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: Color(0xFFFFF4D6), fontFamily: 'QuesterFantasy'),
+        bodyLarge: TextStyle(fontSize: 16, color: Color(0xFFFFF4D6), fontFamily: 'QuesterFantasy'),
+        bodyMedium: TextStyle(fontSize: 14, color: Color(0xFFCBA15C), fontFamily: 'QuesterFantasy'),
+        bodySmall: TextStyle(fontSize: 12, color: Color(0xFF9D7B43), fontFamily: 'QuesterFantasy'),
+        labelLarge: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFF4C95D), letterSpacing: 1.2, fontFamily: 'QuesterFantasy'),
+        labelMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFFFFF4D6), fontFamily: 'QuesterFantasy'),
+        labelSmall: TextStyle(fontSize: 11, color: Color(0xFFE0C489), fontFamily: 'QuesterFantasy'),
+      );
+    }
+
+    // Fantasy
     return const TextTheme(
       headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'QuesterFantasy'),
       headlineMedium: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: 'QuesterFantasy'),

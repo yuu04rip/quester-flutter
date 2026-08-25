@@ -1,6 +1,7 @@
 // lib/screens/shop_screen.dart
 
 import 'package:flutter/material.dart';
+
 import '/data/dao/shop_dao.dart';
 import '/data/models/shop_item.dart';
 import '/repository/user_repository.dart';
@@ -39,7 +40,7 @@ class _ShopScreenState extends State<ShopScreen> {
     _loadShopData();
   }
 
-  /// Carica i dati del negozio e ordina gli oggetti (posseduti in fondo)
+  /// Carica i dati del negozio, filtra i temi speciali/ricompense possedute e ordina gli oggetti
   Future<void> _loadShopData() async {
     final userId = await widget.sessionManager.loggedUserId();
 
@@ -53,8 +54,23 @@ class _ShopScreenState extends State<ShopScreen> {
 
     final ownedIds = owned.map((o) => o.itemId).toSet().cast<String>();
 
-    // Ordina gli oggetti: prima quelli non posseduti, poi quelli posseduti in fondo
-    items.sort((a, b) {
+    // Filtriamo via gli oggetti speciali o gratuiti se l'utente li possiede già
+    final filteredItems = items.where((item) {
+      final isOwned = ownedIds.contains(item.itemId);
+
+      // Sincronizzato con 'reward_tema_regale'
+      if (isOwned &&
+          (item.price == 0 ||
+              item.itemId.startsWith('reward_') ||
+              item.itemId == 'theme_arcade' ||
+              item.itemId == 'reward_tema_regale')) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    // Ordina gli oggetti rimanenti: prima quelli non posseduti, poi quelli posseduti in fondo
+    filteredItems.sort((a, b) {
       final aOwned = ownedIds.contains(a.itemId);
       final bOwned = ownedIds.contains(b.itemId);
 
@@ -63,7 +79,7 @@ class _ShopScreenState extends State<ShopScreen> {
     });
 
     setState(() {
-      _shopItems = items;
+      _shopItems = filteredItems;
       _ownedItemIds = ownedIds;
       _userCoins = user?.coins ?? 0;
       _isLoading = false;
@@ -82,9 +98,7 @@ class _ShopScreenState extends State<ShopScreen> {
           padding: const EdgeInsets.all(16),
           child: _buildHeader(context),
         ),
-        Expanded(
-          child: _buildShopGrid(context),
-        ),
+        Expanded(child: _buildShopGrid(context)),
       ],
     );
   }
@@ -117,11 +131,7 @@ class _ShopScreenState extends State<ShopScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/coin.png',
-                  width: 24,
-                  height: 24,
-                ),
+                Image.asset('assets/images/coin.png', width: 24, height: 24),
                 const SizedBox(width: 4),
                 Text(
                   '$_userCoins',
@@ -164,7 +174,7 @@ class _ShopScreenState extends State<ShopScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.75, // Fix overflow
+        childAspectRatio: 0.75,
       ),
       itemCount: _shopItems.length,
       itemBuilder: (context, index) {
@@ -216,7 +226,11 @@ class _ShopScreenState extends State<ShopScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.lock, size: 12, color: theme.colorScheme.secondary),
+                  Icon(
+                    Icons.lock,
+                    size: 12,
+                    color: theme.colorScheme.secondary,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Posseduto',
@@ -231,11 +245,7 @@ class _ShopScreenState extends State<ShopScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/images/coin.png',
-                    width: 14,
-                    height: 14,
-                  ),
+                  Image.asset('assets/images/coin.png', width: 14, height: 14),
                   const SizedBox(width: 4),
                   Text(
                     '${item.price}',
@@ -256,7 +266,10 @@ class _ShopScreenState extends State<ShopScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.secondary,
                     foregroundColor: theme.colorScheme.onSecondary,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 0,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
@@ -277,31 +290,39 @@ class _ShopScreenState extends State<ShopScreen> {
   /// Icona dinamica in base all'item
   Widget _buildShopItemIcon(BuildContext context, ShopItem item, bool isOwned) {
     final theme = Theme.of(context);
-    final iconName = item.iconName;
-
-    return switch (iconName) {
-      'ic_gun_spaziale' => Image.asset(
+    return switch (item.itemId) {
+      'reward_tema_regale' => Icon(
+        Icons.workspace_premium,
+        size: 36,
+        color: isOwned ? Colors.grey : RegalGold,
+      ),
+      'reward_corona' => Icon(
+        Icons.workspace_premium_rounded,
+        size: 36,
+        color: isOwned ? Colors.grey : FantasyGold,
+      ),
+      'gun_spaziale' => Image.asset(
         'assets/images/ic_gun_spaziale.png',
         width: 36,
         height: 36,
         color: isOwned ? Colors.grey : null,
         colorBlendMode: isOwned ? BlendMode.saturation : null,
       ),
-      'ic_theme_arcade' => Image.asset(
+      'theme_arcade' => Image.asset(
         'assets/images/ic_theme_arcade.png',
         width: 36,
         height: 36,
         color: isOwned ? Colors.grey : null,
         colorBlendMode: isOwned ? BlendMode.saturation : null,
       ),
-      'ic_visor_futuristico' => Image.asset(
+      'visor_futuristico' => Image.asset(
         'assets/images/ic_visor_futuristico.png',
         width: 36,
         height: 36,
         color: isOwned ? Colors.grey : null,
         colorBlendMode: isOwned ? BlendMode.saturation : null,
       ),
-      'ic_frame_scifi' => _buildFrameIcon(
+      'frame_scifi' => _buildFrameIcon(
         color: const Color(0xFF00FF66),
         isOwned: isOwned,
         hasGlow: true,
@@ -322,7 +343,7 @@ class _ShopScreenState extends State<ShopScreen> {
         assetPath: 'assets/images/char_hat.png',
         isOwned: isOwned,
       ),
-      'elmo_cavaliere' => _buildAvatarPartIcon(
+      'hat_cavaliere' => _buildAvatarPartIcon(
         assetPath: 'assets/images/char_hat.png',
         isOwned: isOwned,
       ),
@@ -333,6 +354,11 @@ class _ShopScreenState extends State<ShopScreen> {
       'sword_cavaliere' => _buildAvatarPartIcon(
         assetPath: 'assets/images/char_weapon_wood.png',
         isOwned: isOwned,
+      ),
+      'theme_fantasy' => Icon(
+        Icons.auto_awesome,
+        size: 36,
+        color: isOwned ? Colors.grey : FantasyGold,
       ),
       _ => Icon(
         Icons.shopping_cart,
@@ -357,18 +383,15 @@ class _ShopScreenState extends State<ShopScreen> {
       height: 36,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: displayColor,
-          width: 4,
-        ),
+        border: Border.all(color: displayColor, width: 4),
         boxShadow: hasGlow && !isOwned
             ? [
-          BoxShadow(
-            color: displayColor.withValues(alpha: 0.5),
-            blurRadius: 8,
-            spreadRadius: 1,
-          ),
-        ]
+                BoxShadow(
+                  color: displayColor.withValues(alpha: 0.5),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ]
             : null,
       ),
       child: Center(

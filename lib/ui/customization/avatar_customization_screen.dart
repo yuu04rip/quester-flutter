@@ -238,6 +238,8 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
         return 'Base';
       case HatType.mago:
         return 'Cap. Mago';
+      case HatType.cavaliere:
+        return 'Elmo Cav.';
       case HatType.scifi:
         return 'Vis. Futur.';
     }
@@ -310,7 +312,7 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
     );
   }
 
-  /// Sezione Copricapo (Includiamo HatType.none come opzione Base)
+  /// Sezione Copricapo (Includiamo HatType.none e HatType.cavaliere)
   Widget _buildHatSection(BuildContext context, bool isArcade) {
     final options = [HatType.none, ...HatType.values.where((h) => h != HatType.none)];
 
@@ -329,7 +331,7 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
     );
   }
 
-  /// Sezione Arma (Includiamo WeaponType.none come opzione Base e tutte le altre armi)
+  /// Sezione Arma
   Widget _buildWeaponSection(BuildContext context, bool isArcade) {
     final options = [WeaponType.none, ...WeaponType.values.where((w) => w != WeaponType.none)];
 
@@ -348,7 +350,7 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
     );
   }
 
-  /// Sezione Cornice (Includiamo FrameType.basic e FrameType.none come opzioni Base)
+  /// Sezione Cornice
   Widget _buildFrameSection(BuildContext context, bool isArcade) {
     final options = [FrameType.basic, ...FrameType.values.where((f) => f != FrameType.none && f != FrameType.basic)];
 
@@ -458,6 +460,8 @@ class _AvatarCustomizationScreenState extends State<AvatarCustomizationScreen> {
           return 'Base';
         case HatType.mago:
           return 'Cap. Mago';
+        case HatType.cavaliere:
+          return 'Elmo Cav.';
         case HatType.scifi:
           return 'Vis. Futur.';
       }

@@ -27,23 +27,44 @@ class OwnedCosmeticsSection extends StatefulWidget {
 }
 
 class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
-  AppTheme _currentTheme = AppTheme.fantasy;
+  late AppTheme _currentTheme;
   final ThemePreferences _themePreferences = ThemePreferences();
 
+  // Lista di ID dei temi supportati con l'ID standardizzato 'reward_tema_regale'
   static const List<String> _themeIds = [
     'theme_arcade',
     'theme_fantasy',
+    'reward_tema_regale',
   ];
 
   @override
   void initState() {
     super.initState();
     _currentTheme = ThemeManager.currentTheme;
+    // Ascolta i cambiamenti globali del tema per aggiornare l'UI in tempo reale
+    ThemeManager.themeNotifier.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    ThemeManager.themeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {
+        _currentTheme = ThemeManager.currentTheme;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Filtriamo e teniamo solo i cosmetici che l'utente possiede veramente
+    final validCosmetics = widget.ownedCosmetics;
 
     return Card(
       elevation: 14,
@@ -59,14 +80,14 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context),
+            _buildHeader(context, validCosmetics.length),
             const SizedBox(height: 10),
             Divider(color: theme.colorScheme.secondary.withValues(alpha: 0.35)),
             const SizedBox(height: 14),
-            if (widget.ownedCosmetics.isEmpty)
+            if (validCosmetics.isEmpty)
               _buildEmptyState(context)
             else
-              _buildCosmeticsGrid(context),
+              _buildCosmeticsGrid(context, validCosmetics),
           ],
         ),
       ),
@@ -74,7 +95,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
   }
 
   /// Header con titolo e refresh
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, int count) {
     final theme = Theme.of(context);
 
     return Row(
@@ -91,7 +112,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
             ),
             const SizedBox(height: 2),
             Text(
-              '${widget.ownedCosmetics.length} oggetti posseduti',
+              '$count oggetti posseduti',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -138,8 +159,8 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     );
   }
 
-  /// Griglia cosmetici (aspectRatio corretto a 0.82 per evitare overflow)
-  Widget _buildCosmeticsGrid(BuildContext context) {
+  /// Griglia cosmetici filtrati
+  Widget _buildCosmeticsGrid(BuildContext context, List<OwnedCosmetic> cosmetics) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -147,11 +168,11 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
         crossAxisCount: 3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.82,
+        childAspectRatio: 0.72, // Corretto per evitare l'overflow verticale
       ),
-      itemCount: widget.ownedCosmetics.length,
+      itemCount: cosmetics.length,
       itemBuilder: (context, index) {
-        final cosmetic = widget.ownedCosmetics[index];
+        final cosmetic = cosmetics[index];
         final isTheme = _themeIds.contains(cosmetic.itemId);
         final isSelected = isTheme && _isThemeActive(cosmetic.itemId);
 
@@ -199,7 +220,6 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
               targetTheme = _getTargetTheme(itemId);
             }
 
-            setState(() => _currentTheme = targetTheme);
             ThemeManager.setTheme(targetTheme);
             _themePreferences.saveTheme(targetTheme);
             widget.onThemeApplied(targetTheme);
@@ -212,7 +232,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                height: 36, // Spazio fisso adeguato per l'icona/immagine ingrandita
+                height: 36,
                 child: Center(
                   child: _buildCosmeticIcon(context, itemId, isSelected),
                 ),
@@ -249,27 +269,65 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     );
   }
 
-  /// Icona dinamica in base al cosmetico (Ora usa esattamente le stesse immagini e dimensioni del Negozio)
+  /// Icona dinamica in base al cosmetico
   Widget _buildCosmeticIcon(BuildContext context, String itemId, bool isSelected) {
     final theme = Theme.of(context);
 
     return switch (itemId) {
-      'theme_arcade' => Image.asset('assets/images/ic_theme_arcade.png', width: 36, height: 36, fit: BoxFit.contain),
+      'theme_arcade' => Image.asset(
+        'assets/images/ic_theme_arcade.png',
+        width: 36,
+        height: 36,
+        fit: BoxFit.contain,
+      ),
       'theme_fantasy' => Icon(
         Icons.auto_awesome,
         size: 34,
         color: isSelected ? theme.colorScheme.secondary : FantasyGold,
       ),
+      'reward_tema_regale' => Icon(
+        Icons.workspace_premium,
+        size: 34,
+        color: isSelected ? theme.colorScheme.secondary : RegalGold,
+      ),
       'frame_mago' => _buildFrameIcon(const Color(0xFF6B4C9A)),
       'frame_cavaliere' => _buildFrameIcon(const Color(0xFFD4AF37)),
-      'frame_scifi' || 'ic_frame_scifi' => _buildFrameIcon(const Color(0xFF00FF66)),
+      'frame_scifi' => _buildFrameIcon(const Color(0xFF00FF66)),
       'frame_basic' => _buildFrameIcon(const Color(0xFFD4AF37)),
-      'hat_mago' => Image.asset('assets/images/char_hat.png', width: 36, height: 36, fit: BoxFit.contain),
-      'elmo_cavaliere' => Image.asset('assets/images/char_hat.png', width: 36, height: 36, fit: BoxFit.contain),
-      'visor_futuristico' || 'ic_visor_futuristico' => Image.asset('assets/images/ic_visor_futuristico.png', width: 36, height: 36, fit: BoxFit.contain),
-      'staff_mago' => Image.asset('assets/images/char_weapon_wood.png', width: 36, height: 36, fit: BoxFit.contain),
-      'sword_cavaliere' => Image.asset('assets/images/char_weapon_wood.png', width: 36, height: 36, fit: BoxFit.contain),
-      'gun_spaziale' || 'ic_gun_spaziale' => Image.asset('assets/images/ic_gun_spaziale.png', width: 36, height: 36, fit: BoxFit.contain),
+      'hat_mago' => Icon(
+        Icons.auto_awesome,
+        size: 32,
+        color: isSelected ? theme.colorScheme.secondary : FantasyGold,
+      ),
+      'hat_cavaliere' => Icon(
+        Icons.shield,
+        size: 32,
+        color: isSelected ? theme.colorScheme.secondary : FantasyGold,
+      ),
+      'visor_futuristico' => Image.asset(
+        'assets/images/ic_visor_futuristico.png',
+        width: 36,
+        height: 36,
+        fit: BoxFit.contain,
+      ),
+      'staff_mago' => Image.asset(
+        'assets/images/char_weapon_wood.png',
+        width: 36,
+        height: 36,
+        fit: BoxFit.contain,
+      ),
+      'sword_cavaliere' => Image.asset(
+        'assets/images/char_weapon_wood.png',
+        width: 36,
+        height: 36,
+        fit: BoxFit.contain,
+      ),
+      'gun_spaziale' => Image.asset(
+        'assets/images/ic_gun_spaziale.png',
+        width: 36,
+        height: 36,
+        fit: BoxFit.contain,
+      ),
       _ => Icon(
         Icons.auto_awesome,
         size: 34,
@@ -302,43 +360,45 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     );
   }
 
-  /// Verifica se il tema è attivo
   bool _isThemeActive(String itemId) {
     switch (itemId) {
       case 'theme_arcade':
         return _currentTheme == AppTheme.arcade;
       case 'theme_fantasy':
         return _currentTheme == AppTheme.fantasy;
+      case 'reward_tema_regale':
+        return _currentTheme == AppTheme.regale;
       default:
         return false;
     }
   }
 
-  /// Ottiene il tema corrispondente all'ID premuto
   AppTheme _getTargetTheme(String itemId) {
     switch (itemId) {
       case 'theme_arcade':
         return AppTheme.arcade;
       case 'theme_fantasy':
         return AppTheme.fantasy;
+      case 'reward_tema_regale':
+        return AppTheme.regale;
       default:
         return AppTheme.fantasy;
     }
   }
 
-  /// Nome visualizzato del tema
   String _getThemeDisplayName(String itemId) {
     switch (itemId) {
       case 'theme_arcade':
         return 'Tema Arcade';
       case 'theme_fantasy':
         return 'Tema Fantasy';
+      case 'reward_tema_regale':
+        return 'Tema Regale';
       default:
         return _formatCosmeticName(itemId);
     }
   }
 
-  /// Formatta il nome del cosmetico
   String _formatCosmeticName(String itemId) {
     return itemId
         .split('_')

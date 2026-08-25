@@ -15,6 +15,8 @@ class CosmeticIdMapper {
         return null;
       case HatType.mago:
         return 'hat_mago';
+      case HatType.cavaliere:
+        return 'hat_cavaliere'; // 💡 Aggiunto supporto elmo cavaliere
       case HatType.scifi:
         return 'visor_futuristico';
       default:
@@ -27,6 +29,9 @@ class CosmeticIdMapper {
     switch (shopId) {
       case 'hat_mago':
         return HatType.mago;
+      case 'hat_cavaliere':
+      case 'elmo_cavaliere':
+        return HatType.cavaliere; // 💡 Aggiunto supporto elmo cavaliere
       case 'visor_futuristico':
         return HatType.scifi;
       default:
@@ -128,19 +133,46 @@ class CosmeticIdMapper {
   }
 
   static FrameType parseFrameType(String? value) {
-    // Se è vuoto, nullo o NONE, restituisce BASIC di default
     if (value == null || value.isEmpty || value.toUpperCase() == 'NONE') {
       return FrameType.basic;
     }
 
-    // 1. Prova da ID dello Shop
     final fromShop = shopIdToFrame(value);
     if (fromShop != FrameType.basic) return fromShop;
 
-    // 2. Prova da nome Enum
     for (final frame in FrameType.values) {
       if (frame.name.toUpperCase() == value.toUpperCase()) return frame;
     }
     return FrameType.basic;
+  }
+
+  // ===== THEME / TEMI (Inclusi i temi speciali e regali) =====
+
+  static String? themeToShopId(String? themeName) {
+    if (themeName == null) return null;
+    switch (themeName.toLowerCase()) {
+      case 'arcade':
+        return 'theme_arcade';
+      case 'fantasy':
+        return 'theme_fantasy';
+      case 'regale':
+      case 'reward_tema_regale':
+        return 'reward_tema_regale';
+      default:
+        return themeName;
+    }
+  }
+
+  static String shopIdToTheme(String? shopId) {
+    if (shopId == null || shopId.isEmpty) return 'fantasy';
+    switch (shopId) {
+      case 'theme_arcade':
+        return 'arcade';
+      case 'reward_tema_regale':
+        return 'regale';
+      case 'theme_fantasy':
+      default:
+        return 'fantasy';
+    }
   }
 }

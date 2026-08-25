@@ -8,7 +8,9 @@ import '/data/session/session_manager.dart';
 import '/domain/service/auth_service.dart';
 import '/domain/service/mission_service.dart';
 import '/domain/service/shop_service.dart';
-import '/widgets/arcade_background.dart'; // ✅ Importato lo sfondo arcade
+import '/ui/theme/app_theme.dart';
+import '/widgets/arcade_background.dart';
+import '/widgets/royal_background.dart';
 import 'nav_screens.dart';
 import 'profile_screen.dart';
 import '../screens/mission/mission_list_screen.dart';
@@ -53,7 +55,7 @@ class NavBar extends StatefulWidget {
     required this.services,
     required this.repositories,
     required this.sessionManager,
-    required this.onLogout,  // ✅ Obbligatorio
+    required this.onLogout,
   });
 
   @override
@@ -68,30 +70,50 @@ class _NavBarState extends State<NavBar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return ArcadeBackground(
-      child: Scaffold(
-        // ✅ Rimosso Colors.transparent fisso: i temi normali useranno il proprio colore di sfondo,
-        // mentre in modalità arcade ci penserà ArcadeBackground a rendere lo sfondo trasparente.
-        bottomNavigationBar: _showCustomization
-            ? null
-            : BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() => _currentIndex = index);
-          },
-          items: navScreensList.map((screen) {
-            return BottomNavigationBarItem(
-              icon: Icon(screen.icon),
-              label: screen.title,
-            );
-          }).toList(),
-          backgroundColor: const Color(0xA90D0B14),
-          selectedItemColor: theme.colorScheme.secondary,
-          unselectedItemColor: theme.colorScheme.onSurfaceVariant
-              .withValues(alpha: 0.7),
-        ),
-        body: _showCustomization ? _buildCustomization() : _buildBody(),
+    // Controlliamo quale tema speciale è attivo
+    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
+    final isRegal = ThemeManager.currentTheme == AppTheme.regale;
+
+    // 💡 Definiamo lo Scaffold principale con sfondo completamente trasparente
+    final scaffold = Scaffold(
+      backgroundColor: Colors.transparent,
+      bottomNavigationBar: _showCustomization
+          ? null
+          : BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+        },
+        items: navScreensList.map((screen) {
+          return BottomNavigationBarItem(
+            icon: Icon(screen.icon),
+            label: screen.title,
+          );
+        }).toList(),
+        backgroundColor: isRegal
+            ? const Color(0xE01A150E) // Sfumatura dorata scura per regale
+            : const Color(0xA90D0B14), // Sfumatura arcade/fantasy
+        selectedItemColor: theme.colorScheme.secondary,
+        unselectedItemColor: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+        type: BottomNavigationBarType.fixed,
       ),
+      body: SafeArea(
+        child: _showCustomization ? _buildCustomization() : _buildBody(),
+      ),
+    );
+
+    // 👑 Avvolgiamo lo Scaffold nel widget di sfondo corretto in base al tema attivo
+    if (isArcade) {
+      return ArcadeBackground(child: scaffold);
+    } else if (isRegal) {
+      return RoyalBackground(child: scaffold);
+    }
+
+    // Se il tema è Fantasy standard
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: scaffold.body,
+      bottomNavigationBar: scaffold.bottomNavigationBar,
     );
   }
 
@@ -159,11 +181,11 @@ class _NavBarState extends State<NavBar> {
           callbacks: ProfileCallbacks(
             onLogout: () async {
               await widget.services.authService.logout();
-              widget.onLogout();  // ✅ Torna al login
+              widget.onLogout();
             },
             onDeleteAccount: () async {
               await widget.services.authService.deleteAccount();
-              widget.onLogout();  // ✅ Torna al login
+              widget.onLogout();
             },
             onUpdateUsername: (newUsername) async {
               await widget.services.authService.updateUsername(newUsername);

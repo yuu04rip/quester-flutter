@@ -77,3 +77,26 @@ const Color ArcadeTextSecondary = Color(0xFF66FF66);
 
 const Color ArcadeError = Color(0xFFFF0055);
 const Color ArcadeSuccess = Color(0xFF00FF66);
+
+// ============================================================
+//  👑 COLORI TEMA REGALE (PREMIUM / LIV 50)
+// ============================================================
+
+const Color RegalBackground = Color(0xFF0E071B); // Viola notte profondo (Velluto)
+const Color RegalSurface = Color(0xFF1B0F33);    // Superfici scure maestose
+const Color RegalSurfaceLight = Color(0xFF29174A);
+const Color RegalSurfaceVariant = Color(0xFF381B66);
+
+const Color RegalGold = Color(0xFFFFD700);       // Oro zecchino brillante
+const Color RegalGoldLight = Color(0xFFFFF099);  // Riflesso dorato
+const Color RegalGoldDark = Color(0xFFC59B00);   // Oro brunito
+
+const Color RegalPurple = Color(0xFF8A2BE2);     // Viola Reale Intenso
+const Color RegalPurpleDark = Color(0xFF4B0082); // Indaco Sovrano
+const Color RegalPurpleLight = Color(0xFFB366FF);
+
+const Color RegalText = Color(0xFFFFF8E7);       // Bianco crema/avorio regale
+const Color RegalTextSecondary = Color(0xFFE2C9F3);
+
+const Color RegalAccent = Color(0xFFE63946);     // Rosso Rubino Reale
+const Color RegalSuccess = Color(0xFF00E676);    // Smeraldo brillante

@@ -24,16 +24,27 @@ class FantasyXpProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
+    final isMaxLevel = livello >= 50;
 
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Liv. $livello', style: TextStyle(fontSize: 10, color: Colors.grey)),
-            Text('$xpInCurrentLevel / $xpNeededForLevel XP',
-                style: TextStyle(fontSize: 10, color: Colors.grey)),
-            Text('Liv. ${livello + 1}', style: TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(
+              isArcade ? 'Stage $livello' : 'Liv. $livello',
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            ),
+            Text(
+              isMaxLevel ? 'MAX XP' : '$xpInCurrentLevel / $xpNeededForLevel XP',
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            ),
+            Text(
+              isMaxLevel
+                  ? (isArcade ? 'STAGE MAX' : 'MAX')
+                  : (isArcade ? 'Stage ${livello + 1}' : 'Liv. ${livello + 1}'),
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -43,7 +54,7 @@ class FantasyXpProgress extends StatelessWidget {
             : ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
-            value: xpProgress,
+            value: isMaxLevel ? 1.0 : xpProgress,
             minHeight: 12,
             backgroundColor: FantasyPurpleDark.withValues(alpha: 0.5),
             valueColor: AlwaysStoppedAnimation<Color>(FantasyGold),
@@ -56,7 +67,8 @@ class FantasyXpProgress extends StatelessWidget {
   /// Costruisce una barra a trattini in stile pixel/arcade
   Widget _buildArcadeSegmentedBar(BuildContext context) {
     const totalSegments = 10; // Numero di blocchetti totali della barra
-    final activeSegments = (xpProgress * totalSegments).round();
+    final isMaxLevel = livello >= 50;
+    final activeSegments = isMaxLevel ? totalSegments : (xpProgress * totalSegments).round();
 
     final theme = Theme.of(context);
 
@@ -75,7 +87,7 @@ class FantasyXpProgress extends StatelessWidget {
               height: 10,
               margin: const EdgeInsets.symmetric(horizontal: 1.5),
               decoration: BoxDecoration(
-                // I blocchi attivi usano il colore Primario Neon (es. verde o acceso), quelli vuoti sono scuri
+                // I blocchi attivi usano il colore Primario Neon, quelli vuoti sono scuri
                 color: isActive
                     ? theme.colorScheme.primary
                     : theme.colorScheme.primary.withValues(alpha: 0.15),

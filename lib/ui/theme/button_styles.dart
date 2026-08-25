@@ -15,8 +15,8 @@ class ButtonStyleFactory {
         return _fantasyButtonStyle;
       case AppTheme.arcade:
         return _arcadeButtonStyle;
-      default:
-        return _fantasyButtonStyle;
+      case AppTheme.regale:
+        return _regaleButtonStyle;
     }
   }
 
@@ -36,7 +36,7 @@ class ButtonStyleFactory {
         borderRadius: BorderRadius.circular(16),
       ),
     ),
-    // Lunghezza aumentata modificando l'horizontal padding da 24 a 40
+    // Lunghezza aumentata con horizontal padding a 40
     padding: WidgetStateProperty.all(
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
     ),
@@ -59,7 +59,35 @@ class ButtonStyleFactory {
         side: const BorderSide(color: Colors.black, width: 3),
       ),
     ),
-    // Lunghezza aumentata modificando l'horizontal padding da 24 a 40
+    // Lunghezza aumentata con horizontal padding a 40
+    padding: WidgetStateProperty.all(
+      const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+    ),
+  );
+
+  /// 👑 Stile Regale (Oro brillante e dettagli imperiali)
+  static final ButtonStyle _regaleButtonStyle = ButtonStyle(
+    backgroundColor: WidgetStateProperty.all(RegalGold),
+    foregroundColor: WidgetStateProperty.all(RegalBackground),
+    elevation: WidgetStateProperty.all(8),
+    shadowColor: WidgetStateProperty.all(RegalGold.withValues(alpha: 0.5)),
+    textStyle: WidgetStateProperty.all(
+      const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
+        fontFamily: 'QuesterFantasy',
+      ),
+    ),
+    shape: WidgetStateProperty.all(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(
+          color: RegalGoldLight,
+          width: 1.5,
+        ),
+      ),
+    ),
     padding: WidgetStateProperty.all(
       const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
     ),

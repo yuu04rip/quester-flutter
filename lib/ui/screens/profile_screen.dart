@@ -10,6 +10,7 @@ import 'profile_components.dart';
 import 'profile_constants.dart';
 import '/widgets/avatar_view.dart';
 import '/widgets/magic_burst_button.dart';
+import '/widgets/regal_crown_badge.dart'; // 👑 Import del badge corona regale
 import 'owned_cosmetics_section.dart';
 import '/ui/theme/app_theme.dart';
 import '/widgets/arcade_mini_game_widget.dart';
@@ -182,6 +183,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
 
+    // 💡 Blocco rigoroso del livello a 50 per evitare visualizzazioni come "Livello 51"
+    final displayLevel = user.livello > 50 ? 50 : user.livello;
+    final isMaxLevel = user.livello >= 50;
+
     return Container(
       decoration: isArcade
           ? BoxDecoration(
@@ -231,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: Text(
-                    _getPlayerTitle(user.livello),
+                    _getPlayerTitle(displayLevel),
                     style: TextStyle(
                       fontFamily: 'QuesterPixel',
                       fontSize: 10,
@@ -246,19 +251,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
 
               // ========================================================
-              // AVATAR
+              // AVATAR CON CORONA REGALE IN CIMA
               // ========================================================
-              GestureDetector(
-                onTap: () async {
-                  widget.callbacks.onShowCustomization();
-                  await _loadUserData();
-                },
-                child: AvatarView(
-                  cosmetics: _equippedCosmetics,
-                  size: 140,
-                  scale: 1.2,
-                  verticalOffset: 4,
-                ),
+              Stack(
+                alignment: Alignment.topCenter,
+                clipBehavior: Clip.none,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      widget.callbacks.onShowCustomization();
+                      await _loadUserData();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: AvatarView(
+                        cosmetics: _equippedCosmetics,
+                        size: 140,
+                        scale: 1.2,
+                        verticalOffset: 4,
+                      ),
+                    ),
+                  ),
+                  const Positioned(
+                    top: -6,
+                    child: RegalCrownBadge(size: 30),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 12),
@@ -321,8 +339,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Text(
                   isArcade
-                      ? 'STAGE ${user.livello} / 50'
-                      : 'Livello ${user.livello}',
+                      ? (isMaxLevel ? 'STAGE MAX (50)' : 'STAGE $displayLevel / 50')
+                      : (isMaxLevel ? 'Livello 50 (MAX)' : 'Livello $displayLevel'),
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.secondary,
                     letterSpacing: isArcade ? 1.5 : 0,
@@ -345,26 +363,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // ========================================================
               FantasyXpProgress(
                 xpTotale: user.xpTotale,
-                livello: user.livello,
-                xpProgress: getXpProgress(
+                livello: displayLevel,
+                xpProgress: widget.userRepository.getXpProgress(
                   user.xpTotale,
-                  user.livello,
+                  displayLevel,
                 ),
-                xpInCurrentLevel: getXpInCurrentLevel(
+                xpInCurrentLevel: isMaxLevel
+                    ? widget.userRepository.getXpRequiredForLevel(50)
+                    : widget.userRepository.getXpInCurrentLevel(
                   user.xpTotale,
-                  user.livello,
+                  displayLevel,
                 ),
-                xpNeededForLevel: getXpRequiredForLevel(
-                  user.livello,
+                xpNeededForLevel: widget.userRepository.getXpRequiredForLevel(
+                  displayLevel,
                 ),
               ),
 
               const SizedBox(height: 4),
 
               Text(
-                isArcade
-                    ? 'NEXT STAGE BONUS: +${getLevelUpCoins(user.livello)} COINS'
-                    : 'Prossimo level-up: +${getLevelUpCoins(user.livello)} monete',
+                isMaxLevel
+                    ? (isArcade ? 'MAX STAGE REACHED - REWARDS UNLOCKED' : 'Livello massimo raggiunto! Premi sbloccati.')
+                    : (isArcade
+                    ? 'NEXT STAGE BONUS: +${widget.userRepository.getLevelUpCoins(displayLevel)} COINS'
+                    : 'Prossimo level-up: +${widget.userRepository.getLevelUpCoins(displayLevel)} monete'),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

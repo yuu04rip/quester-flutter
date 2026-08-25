@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import '../ui/theme/colors.dart';
 import '../ui/theme/app_theme.dart';
 
-/// Bottone con effetto magico animato e supporto integrato per tema Fantasy / Arcade (Pixel)
+/// Bottone con effetto magico animato e supporto integrato per temi Fantasy, Arcade (Pixel) e Regale (3D)
 class MagicBurstButton extends StatefulWidget {
   final String text;
   final bool loading;
@@ -49,7 +49,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
       ),
     );
 
-    // 🕹️ Sposta il bottone in basso di 4 pixel quando viene premuto (effetto pulsante meccanico)
+    // Sposta il bottone in basso di 4 pixel quando viene premuto (effetto pulsante meccanico)
     _pressTranslateAnimation = Tween<double>(begin: 0.0, end: 4.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -93,8 +93,9 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
 
   @override
   Widget build(BuildContext context) {
-    // Rileva dinamicamente se siamo in modalità arcade o fantasy
-    final bool isArcade = widget.isArcadeOverride ?? (ThemeManager.currentTheme == AppTheme.arcade);
+    final currentTheme = ThemeManager.currentTheme;
+    final bool isArcade = widget.isArcadeOverride ?? (currentTheme == AppTheme.arcade);
+    final bool isRegale = currentTheme == AppTheme.regale;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -107,19 +108,19 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
             children: [
               // ✨ Effetto particelle (adattato al tema)
               if (_controller.value > 0.0 && _controller.value < 1.0)
-                _buildParticles(isArcade),
+                _buildParticles(isArcade, isRegale),
 
               // ✨ Bagliore magico
               if (_glowAnimation.value > 0.0)
-                _buildGlow(isArcade),
+                _buildGlow(isArcade, isRegale),
 
-              // ✨ Bottone principale con transizione fisica di pressione (speciale per Arcade)
+              // ✨ Bottone principale con transizione fisica di pressione
               Transform.translate(
                 offset: Offset(0, isArcade ? _pressTranslateAnimation.value : 0),
                 child: Transform.scale(
-                  scale: isArcade ? 1.0 : _scaleAnimation.value, // Se arcade usiamo la traslazione invece dello scale
+                  scale: isArcade ? 1.0 : _scaleAnimation.value,
                   child: SizedBox.expand(
-                    child: _buildButton(isArcade),
+                    child: _buildButton(isArcade, isRegale),
                   ),
                 ),
               ),
@@ -130,8 +131,8 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Particelle magiche o pixelate
-  Widget _buildParticles(bool isArcade) {
+  /// ✨ Particelle magiche (Supporta Arcade, Regale o Fantasy)
+  Widget _buildParticles(bool isArcade, bool isRegale) {
     final progress = _particleAnimation.value;
     const particleCount = 16;
 
@@ -141,22 +142,35 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
           progress: progress,
           particleCount: particleCount,
           isArcade: isArcade,
+          isRegale: isRegale,
         ),
       ),
     );
   }
 
   /// ✨ Bagliore magico (colore dinamico in base al tema)
-  Widget _buildGlow(bool isArcade) {
+  Widget _buildGlow(bool isArcade, bool isRegale) {
     final glowOpacity = (1.0 - _glowAnimation.value) * 0.8;
-    final primaryGlowColor = isArcade ? ArcadeGreen : FantasyGold;
-    final secondaryGlowColor = isArcade ? const Color(0xFF00FFCC) : Colors.orange;
+
+    final Color primaryGlowColor;
+    final Color secondaryGlowColor;
+
+    if (isArcade) {
+      primaryGlowColor = ArcadeGreen;
+      secondaryGlowColor = const Color(0xFF00FFCC);
+    } else if (isRegale) {
+      primaryGlowColor = RegalGold;
+      secondaryGlowColor = const Color(0xFFFFE7B0);
+    } else {
+      primaryGlowColor = FantasyGold;
+      secondaryGlowColor = Colors.orange;
+    }
 
     return Positioned.fill(
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.rectangle,
-          borderRadius: BorderRadius.circular(isArcade ? 4 : 14),
+          borderRadius: BorderRadius.circular(isArcade ? 4 : (isRegale ? 16 : 14)),
           boxShadow: [
             BoxShadow(
               color: primaryGlowColor.withValues(alpha: glowOpacity),
@@ -174,48 +188,107 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Bottone principale unificato (Stile Pixel Arcade con "spessore 3D" o Fantasy)
-  Widget _buildButton(bool isArcade) {
-    final bgColor = isArcade ? const Color(0xFF00FF41) : FantasyGold;
-    final textColor = isArcade ? const Color(0xFF0A0A0F) : FantasyBackground;
-    final borderRadius = isArcade ? 4.0 : 14.0;
+  /// ✨ Bottone principale unificato (Pixel Arcade, Regale 3D o Fantasy)
+  Widget _buildButton(bool isArcade, bool isRegale) {
+    final Color textColor;
+    final double borderRadius;
 
-    // Per l'arcade, se è premuto (_pressTranslateAnimation.value > 0), azzeriamo l'ombra inferiore
-    // per simulare che il tasto è andato a fine corsa contro il pannello.
+    if (isArcade) {
+      textColor = const Color(0xFF0A0A0F);
+      borderRadius = 4.0;
+    } else if (isRegale) {
+      textColor = const Color(0xFF2C220E); // Marrone scuro regale per contrasto perfetto sull'oro
+      borderRadius = 16.0;
+    } else {
+      textColor = FantasyBackground;
+      borderRadius = 14.0;
+    }
+
     final isPressed = isArcade && _pressTranslateAnimation.value > 1.0;
+
+    // 👑 Gestione decorazione speciale per il tema Regale (Gradiente Oro + Bordo doppio)
+    final BoxDecoration buttonDecoration = isArcade
+        ? BoxDecoration(
+      borderRadius: BorderRadius.circular(borderRadius),
+      boxShadow: [
+        BoxShadow(
+          color: isPressed ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF008822),
+          blurRadius: isPressed ? 2 : 2,
+          offset: Offset(0, isPressed ? 1 : 5),
+        ),
+      ],
+    )
+        : isRegale
+        ? BoxDecoration(
+      borderRadius: BorderRadius.circular(borderRadius),
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFFFFEE88), // Oro chiaro brillante in cima
+          RegalGold,         // Oro medio principale
+          Color(0xFFD4AF37), // Oro brunito/scuro in basso per effetto 3D metallico
+        ],
+        stops: [0.0, 0.5, 1.0],
+      ),
+      border: Border.all(
+        color: const Color(0xFFFFF7C2), // Bordo interno lucido
+        width: 1.5,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.amber.withValues(alpha: 0.35),
+          blurRadius: 8,
+          offset: const Offset(0, 3),
+        ),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.5),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    )
+        : BoxDecoration(
+      borderRadius: BorderRadius.circular(borderRadius),
+      color: FantasyGold,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.4),
+          blurRadius: 8,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
 
     return Opacity(
       opacity: widget.loading ? 0.6 : 1.0,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: [
-            // Ombra dinamica: da profonda e staccata a piatta quando viene premuto (effetto bottone fisico)
-            BoxShadow(
-              color: isArcade
-                  ? (isPressed ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF008822))
-                  : Colors.black.withValues(alpha: 0.4),
-              blurRadius: isPressed ? 2 : 8,
-              offset: Offset(0, isPressed ? 1 : (isArcade ? 5 : 4)), // Il bordo inferiore spessa simula il corpo del tasto
-            ),
-          ],
-        ),
+        decoration: buttonDecoration,
         child: ElevatedButton(
           onPressed: widget.loading ? null : _handleClick,
           style: ElevatedButton.styleFrom(
-            backgroundColor: bgColor,
+            backgroundColor: Colors.transparent, // Trasparente per fare spazio al gradiente custom
             foregroundColor: textColor,
-            elevation: 0, // Gestito interamente dal DecoratedBox per un controllo pixel-art perfetto
+            shadowColor: Colors.transparent, // Rimuoviamo l'ombra nativa gestita dal DecoratedBox
+            elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(borderRadius),
-              side: BorderSide(
-                color: isArcade ? const Color(0xFF003311) : Colors.white.withValues(alpha: 0.5),
-                width: isArcade ? 2 : 1.5,
-              ),
+              side: isArcade
+                  ? const BorderSide(color: Color(0xFF003311), width: 2)
+                  : BorderSide.none,
             ),
             padding: EdgeInsets.symmetric(
               horizontal: 16,
               vertical: isArcade ? 16 : 12,
+            ),
+            textStyle: TextStyle(
+              inherit: true,
+              fontSize: isArcade ? 18 : (isRegale ? 16 : 16),
+              fontWeight: FontWeight.bold,
+              fontFamily: isArcade
+                  ? 'QuesterPixel'
+                  : (isRegale ? 'QuesterFantasy' : 'QuesterFantasy'),
+              letterSpacing: isArcade ? 2 : (isRegale ? 1.5 : 1.2),
             ),
           ),
           child: widget.loading
@@ -230,12 +303,18 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
               : Text(
             widget.text.toUpperCase(),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: isArcade ? 18 : 16,
-              fontWeight: FontWeight.bold,
-              fontFamily: isArcade ? 'QuesterPixel' : 'QuesterFantasy',
-              letterSpacing: isArcade ? 2 : 1.2,
-            ),
+            style: isRegale
+                ? TextStyle(
+              color: textColor,
+              shadows: [
+                Shadow(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  offset: const Offset(0, 1),
+                  blurRadius: 0,
+                ),
+              ],
+            )
+                : null,
           ),
         ),
       ),
@@ -243,16 +322,18 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
   }
 }
 
-/// ✨ Painter per le particelle (Supporta colori Arcade o Fantasy)
+/// ✨ Painter per le particelle (Supporta Arcade, Regale o Fantasy)
 class _ParticlePainter extends CustomPainter {
   final double progress;
   final int particleCount;
   final bool isArcade;
+  final bool isRegale;
 
   _ParticlePainter({
     required this.progress,
     required this.particleCount,
     required this.isArcade,
+    required this.isRegale,
   });
 
   @override
@@ -261,7 +342,7 @@ class _ParticlePainter extends CustomPainter {
     final centerY = size.height / 2;
     final random = math.Random(42);
 
-    for (int i = 0; i < particleCount; i++ ) {
+    for (int i = 0; i < particleCount; i++) {
       final angle = (2 * math.pi * i / particleCount) + random.nextDouble() * 0.5;
       final distance = 20 + 80 * progress;
       final px = centerX + math.cos(angle) * distance;
@@ -275,6 +356,10 @@ class _ParticlePainter extends CustomPainter {
         color = i % 2 == 0
             ? const Color(0xFF00FF41).withValues(alpha: alpha)
             : const Color(0xFF00FFCC).withValues(alpha: alpha * 0.8);
+      } else if (isRegale) {
+        color = i % 2 == 0
+            ? RegalGold.withValues(alpha: alpha)
+            : const Color(0xFFFFE7B0).withValues(alpha: alpha * 0.8);
       } else {
         color = i % 2 == 0
             ? FantasyGold.withValues(alpha: alpha)
@@ -301,6 +386,8 @@ class _ParticlePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ParticlePainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.isArcade != isArcade;
+    return oldDelegate.progress != progress ||
+        oldDelegate.isArcade != isArcade ||
+        oldDelegate.isRegale != isRegale;
   }
 }

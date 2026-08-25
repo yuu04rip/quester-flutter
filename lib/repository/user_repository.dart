@@ -6,8 +6,10 @@ import '/data/models/user.dart';
 import '/data/models/owned_cosmetic.dart';
 
 /// Enum per i cosmetici equipaggiabili
-enum HatType { none, mago, scifi }
+enum HatType { none, mago, cavaliere, scifi }
+
 enum WeaponType { none, staff, sword, gun }
+
 enum FrameType { basic, none, mago, cavaliere, scifi }
 
 /// Classe per i cosmetici avatar
@@ -31,14 +33,20 @@ class UserRepository {
   final UserDao userDao;
   final OwnedCosmeticDao? ownedCosmeticDao;
 
-  UserRepository({
-    required this.userDao,
-    this.ownedCosmeticDao,
-  });
+  UserRepository({required this.userDao, this.ownedCosmeticDao});
 
-  /// Utente per ID
+  /// Utente per ID con controllo di sicurezza automatico al livello 50
   Future<User?> getUserById(int userId) async {
-    return userDao.getUserById(userId);
+    final user = await userDao.getUserById(userId);
+    if (user != null) {
+      final currentLevel = calculateLevelFromXp(user.xpTotale);
+      // Sblocco automatico immediato se l'utente è al livello 50
+      if (currentLevel >= maxLevel) {
+        await unlockCosmetic(userId, 'reward_corona');
+        await unlockCosmetic(userId, 'reward_tema_regale');
+      }
+    }
+    return user;
   }
 
   /// XP richiesti per un livello
@@ -46,7 +54,7 @@ class UserRepository {
     return xpBase + (level - 1) * xpIncrement;
   }
 
-  /// Calcola livello da XP totali
+  /// Calcola livello da XP totali (Bloccato rigorosamente a maxLevel = 50)
   int calculateLevelFromXp(int totalXp) {
     var remainingXp = totalXp;
     var level = 1;
@@ -61,22 +69,31 @@ class UserRepository {
       }
     }
 
-    return level.clamp(1, maxLevel);
+    return level >= maxLevel ? maxLevel : level.clamp(1, maxLevel);
   }
 
   /// XP nel livello corrente
   int getXpInCurrentLevel(int totalXp, [int? level]) {
     final currentLevel = level ?? calculateLevelFromXp(totalXp);
+    if (currentLevel >= maxLevel) {
+      return getXpRequiredForLevel(maxLevel); // Al livello max, restituisce il totale del livello per riempire la barra
+    }
+
     var xpForPreviousLevels = 0;
     for (var i = 1; i < currentLevel; i++) {
       xpForPreviousLevels += getXpRequiredForLevel(i);
     }
-    return (totalXp - xpForPreviousLevels) < 0 ? 0 : (totalXp - xpForPreviousLevels);
+    return (totalXp - xpForPreviousLevels) < 0
+        ? 0
+        : (totalXp - xpForPreviousLevels);
   }
 
-  /// Progresso XP (0.0 - 1.0)
+  /// Progresso XP (0.0 - 1.0) -> Al livello massimo restituisce sempre 1.0 (barra piena)
   double getXpProgress(int totalXp, [int? level]) {
     final currentLevel = level ?? calculateLevelFromXp(totalXp);
+    if (currentLevel >= maxLevel) {
+      return 1.0; // Barra piena al livello massimo!
+    }
     final xpInCurrent = getXpInCurrentLevel(totalXp, currentLevel);
     final xpNeeded = getXpRequiredForLevel(currentLevel);
     return (xpInCurrent / xpNeeded).clamp(0.0, 1.0);
@@ -92,7 +109,7 @@ class UserRepository {
     return 0;
   }
 
-  /// Aggiungi XP
+  /// ✅ Aggiungi XP con sblocco automatico al livello 50
   Future<void> addXp(int userId, int xpGained) async {
     if (xpGained <= 0) return;
 
@@ -103,10 +120,7 @@ class UserRepository {
     final newXpTotal = current.xpTotale + xpGained;
     final newLevel = calculateLevelFromXp(newXpTotal);
 
-    var updatedUser = current.copyWith(
-      xpTotale: newXpTotal,
-      livello: newLevel,
-    );
+    var updatedUser = current.copyWith(xpTotale: newXpTotal, livello: newLevel);
 
     if (newLevel > oldLevel) {
       final coinsEarned = getLevelUpCoins(newLevel);
@@ -116,6 +130,12 @@ class UserRepository {
     }
 
     await userDao.updateUser(updatedUser);
+
+    // 🛡️ CONTROLLO DI SICUREZZA UNIVERSALE:
+    if (newLevel >= 50) {
+      await unlockCosmetic(userId, 'reward_corona');
+      await unlockCosmetic(userId, 'reward_tema_regale');
+    }
   }
 
   /// Aggiungi monete
@@ -152,7 +172,7 @@ class UserRepository {
     return true;
   }
 
-  /// Elimina account specifico (Sicuro: cancella solo i dati dell'utente loggato)
+  /// Elimina account specifico
   Future<bool> deleteAccount(int userId) async {
     if (await getUserById(userId) == null) return false;
     await ownedCosmeticDao?.deleteAllForUser(userId);
@@ -162,12 +182,37 @@ class UserRepository {
 
   /// Sblocca cosmetico
   Future<void> unlockCosmetic(int userId, String itemId) async {
-    await ownedCosmeticDao?.insertOwned(OwnedCosmetic(userId: userId, itemId: itemId));
+    var resolvedId = itemId;
+    if (resolvedId == 'elmo_cavaliere') {
+      resolvedId = 'hat_cavaliere';
+    } else if (resolvedId == 'theme_regale') {
+      resolvedId = 'reward_tema_regale';
+    }
+    await ownedCosmeticDao?.insertOwned(
+      OwnedCosmetic(userId: userId, itemId: resolvedId),
+    );
   }
 
-  /// Cosmetici posseduti
+  /// Cosmetici posseduti (con normalizzazione ed eliminazione duplicati)
   Future<List<OwnedCosmetic>> getOwnedCosmetics(int userId) async {
-    return ownedCosmeticDao?.getOwnedByUser(userId) ?? [];
+    final rawOwned = await ownedCosmeticDao?.getOwnedByUser(userId) ?? [];
+
+    // Mappa i vecchi ID e rimuove eventuali duplicati basati su itemId
+    final Map<String, OwnedCosmetic> uniqueMap = {};
+    for (var cosmetic in rawOwned) {
+      String resolvedId = cosmetic.itemId;
+      if (resolvedId == 'elmo_cavaliere') {
+        resolvedId = 'hat_cavaliere';
+      } else if (resolvedId == 'theme_regale') {
+        resolvedId = 'reward_tema_regale';
+      }
+      uniqueMap[resolvedId] = OwnedCosmetic(
+        userId: cosmetic.userId,
+        itemId: resolvedId,
+      );
+    }
+
+    return uniqueMap.values.toList();
   }
 
   /// Cosmetici equipaggiati
@@ -183,31 +228,38 @@ class UserRepository {
   }
 
   /// Salva cosmetici equipaggiati
-  Future<void> saveEquippedCosmetics(int userId, AvatarCosmetics cosmetics) async {
+  Future<void> saveEquippedCosmetics(
+    int userId,
+    AvatarCosmetics cosmetics,
+  ) async {
     final current = await getUserById(userId);
     if (current == null) return;
 
-    await userDao.updateUser(current.copyWith(
-      equippedHat: cosmetics.hat.name,
-      equippedWeapon: cosmetics.weapon.name,
-      equippedFrame: cosmetics.frame.name,
-    ));
+    await userDao.updateUser(
+      current.copyWith(
+        equippedHat: cosmetics.hat.name,
+        equippedWeapon: cosmetics.weapon.name,
+        equippedFrame: cosmetics.frame.name,
+      ),
+    );
   }
 
   /// Parser per Hat
   HatType _parseHat(String? value) {
-    if (value == null || value.isEmpty || value.contains('NONE')) return HatType.none;
+    if (value == null || value.isEmpty || value.contains('NONE'))
+      return HatType.none;
     return HatType.values.firstWhere(
-          (e) => e.name == value.toLowerCase(),
+      (e) => e.name == value.toLowerCase(),
       orElse: () => HatType.none,
     );
   }
 
   /// Parser per Weapon
   WeaponType _parseWeapon(String? value) {
-    if (value == null || value.isEmpty || value.contains('NONE')) return WeaponType.none;
+    if (value == null || value.isEmpty || value.contains('NONE'))
+      return WeaponType.none;
     return WeaponType.values.firstWhere(
-          (e) => e.name == value.toLowerCase(),
+      (e) => e.name == value.toLowerCase(),
       orElse: () => WeaponType.none,
     );
   }
@@ -218,7 +270,7 @@ class UserRepository {
       return FrameType.basic;
     }
     return FrameType.values.firstWhere(
-          (e) => e.name == value.toLowerCase(),
+      (e) => e.name == value.toLowerCase(),
       orElse: () => FrameType.basic,
     );
   }

@@ -6,6 +6,8 @@ import '/repository/auth_repository.dart';
 import '/domain/service/auth_service.dart';
 import '/utils/string_utils.dart';
 import '/ui/theme/app_theme.dart';
+import '/widgets/arcade_background.dart';
+import '/widgets/royal_background.dart';
 
 /// Schermata di autenticazione (login/registrazione)
 class AuthScreen extends StatefulWidget {
@@ -144,23 +146,26 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
+    final currentTheme = ThemeManager.currentTheme;
+    final isArcade = currentTheme == AppTheme.arcade;
+    final isRegale = currentTheme == AppTheme.regale;
 
-    return Scaffold(
+    // 💡 Scaffold con sfondo trasparente per permettere al background personalizzato di vedersi
+    final scaffold = Scaffold(
+      backgroundColor: Colors.transparent,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Card(
-            elevation: isArcade ? 0 : 24,
-            // 💡 Sfondo semi-trasparente in Arcade per far intravedere il background
+            elevation: isArcade ? 0 : (isRegale ? 16 : 24),
             color: isArcade
                 ? theme.colorScheme.surface.withValues(alpha: 0.85)
-                : null,
+                : (isRegale ? theme.colorScheme.surfaceContainer.withValues(alpha: 0.92) : null),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(isArcade ? 8 : 28),
+              borderRadius: BorderRadius.circular(isArcade ? 8 : (isRegale ? 22 : 28)),
               side: BorderSide(
                 color: theme.colorScheme.primary.withValues(alpha: isArcade ? 0.9 : 0.65),
-                width: isArcade ? 2 : 2,
+                width: isArcade ? 2 : (isRegale ? 1.2 : 2),
               ),
             ),
             child: Padding(
@@ -168,11 +173,11 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildHeader(theme, isArcade),
+                  _buildHeader(theme, isArcade, isRegale),
                   const SizedBox(height: 16),
                   Divider(color: theme.colorScheme.secondary.withValues(alpha: 0.35)),
                   const SizedBox(height: 16),
-                  _buildForm(theme, isArcade),
+                  _buildForm(theme, isArcade, isRegale),
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 10),
                     _buildErrorCard(_toFantasyError(_errorMessage), theme),
@@ -186,9 +191,22 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       ),
     );
+
+    // 👑 Applicazione dello sfondo coerente con il tema attivo
+    if (isArcade) {
+      return ArcadeBackground(child: scaffold);
+    } else if (isRegale) {
+      return RoyalBackground(child: scaffold);
+    }
+
+    // Tema Fantasy standard
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: scaffold.body,
+    );
   }
 
-  Widget _buildHeader(ThemeData theme, bool isArcade) {
+  Widget _buildHeader(ThemeData theme, bool isArcade, bool isRegale) {
     return Column(
       children: [
         Container(
@@ -228,7 +246,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildForm(ThemeData theme, bool isArcade) {
+  Widget _buildForm(ThemeData theme, bool isArcade, bool isRegale) {
     return Column(
       children: [
         _buildTextField(
