@@ -168,7 +168,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
         crossAxisCount: 3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.72, // Corretto per evitare l'overflow verticale
+        childAspectRatio: 0.72,
       ),
       itemCount: cosmetics.length,
       itemBuilder: (context, index) {
@@ -269,16 +269,22 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     );
   }
 
-  /// Icona dinamica in base al cosmetico
+  /// Icona dinamica pulita con controllo robusto degli asset
   Widget _buildCosmeticIcon(BuildContext context, String itemId, bool isSelected) {
     final theme = Theme.of(context);
 
+    // Gestione centralizzata tramite switch sugli ID
     return switch (itemId) {
       'theme_arcade' => Image.asset(
         'assets/images/ic_theme_arcade.png',
         width: 36,
         height: 36,
         fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Icon(
+          Icons.videogame_asset,
+          size: 34,
+          color: isSelected ? theme.colorScheme.secondary : Colors.cyanAccent,
+        ),
       ),
       'theme_fantasy' => Icon(
         Icons.auto_awesome,
@@ -309,27 +315,36 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
         width: 36,
         height: 36,
         fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Icon(
+          Icons.visibility,
+          size: 32,
+          color: isSelected ? theme.colorScheme.secondary : Colors.blueAccent,
+        ),
       ),
-      'staff_mago' => Image.asset(
+      'staff_mago' || 'sword_cavaliere' => Image.asset(
         'assets/images/char_weapon_wood.png',
         width: 36,
         height: 36,
         fit: BoxFit.contain,
-      ),
-      'sword_cavaliere' => Image.asset(
-        'assets/images/char_weapon_wood.png',
-        width: 36,
-        height: 36,
-        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Icon(
+          Icons.colorize,
+          size: 32,
+          color: isSelected ? theme.colorScheme.secondary : Colors.brown,
+        ),
       ),
       'gun_spaziale' => Image.asset(
         'assets/images/ic_gun_spaziale.png',
         width: 36,
         height: 36,
         fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Icon(
+          Icons.flash_on,
+          size: 32,
+          color: isSelected ? theme.colorScheme.secondary : Colors.redAccent,
+        ),
       ),
       _ => Icon(
-        Icons.auto_awesome,
+        Icons.shopping_cart,
         size: 34,
         color: isSelected
             ? theme.colorScheme.secondary

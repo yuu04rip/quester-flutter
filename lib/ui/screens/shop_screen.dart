@@ -58,7 +58,6 @@ class _ShopScreenState extends State<ShopScreen> {
     final filteredItems = items.where((item) {
       final isOwned = ownedIds.contains(item.itemId);
 
-      // Sincronizzato con 'reward_tema_regale'
       if (isOwned &&
           (item.price == 0 ||
               item.itemId.startsWith('reward_') ||
@@ -287,9 +286,27 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  /// Icona dinamica in base all'item
+  /// Icona dinamica basata su item.iconName o itemId definiti nel main
   Widget _buildShopItemIcon(BuildContext context, ShopItem item, bool isOwned) {
     final theme = Theme.of(context);
+
+    // Se l'iconName è un asset personalizzato registrato nel main
+    if (item.iconName.startsWith('ic_') || item.iconName.contains('/')) {
+      return Image.asset(
+        'assets/images/${item.iconName}.png',
+        width: 36,
+        height: 36,
+        color: isOwned ? Colors.grey : null,
+        colorBlendMode: isOwned ? BlendMode.saturation : null,
+        errorBuilder: (context, error, stackTrace) => Icon(
+          Icons.shopping_cart,
+          size: 36,
+          color: isOwned ? Colors.grey : theme.colorScheme.secondary,
+        ),
+      );
+    }
+
+    // Gestione specifica per elementi senza asset dedicato o cornici
     return switch (item.itemId) {
       'reward_tema_regale' => Icon(
         Icons.workspace_premium,
@@ -300,27 +317,6 @@ class _ShopScreenState extends State<ShopScreen> {
         Icons.workspace_premium_rounded,
         size: 36,
         color: isOwned ? Colors.grey : FantasyGold,
-      ),
-      'gun_spaziale' => Image.asset(
-        'assets/images/ic_gun_spaziale.png',
-        width: 36,
-        height: 36,
-        color: isOwned ? Colors.grey : null,
-        colorBlendMode: isOwned ? BlendMode.saturation : null,
-      ),
-      'theme_arcade' => Image.asset(
-        'assets/images/ic_theme_arcade.png',
-        width: 36,
-        height: 36,
-        color: isOwned ? Colors.grey : null,
-        colorBlendMode: isOwned ? BlendMode.saturation : null,
-      ),
-      'visor_futuristico' => Image.asset(
-        'assets/images/ic_visor_futuristico.png',
-        width: 36,
-        height: 36,
-        color: isOwned ? Colors.grey : null,
-        colorBlendMode: isOwned ? BlendMode.saturation : null,
       ),
       'frame_scifi' => _buildFrameIcon(
         color: const Color(0xFF00FF66),
@@ -337,22 +333,6 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
       'frame_basic' => _buildFrameIcon(
         color: const Color(0xFFD4AF37),
-        isOwned: isOwned,
-      ),
-      'hat_mago' => _buildAvatarPartIcon(
-        assetPath: 'assets/images/char_hat.png',
-        isOwned: isOwned,
-      ),
-      'hat_cavaliere' => _buildAvatarPartIcon(
-        assetPath: 'assets/images/char_hat.png',
-        isOwned: isOwned,
-      ),
-      'staff_mago' => _buildAvatarPartIcon(
-        assetPath: 'assets/images/char_weapon_wood.png',
-        isOwned: isOwned,
-      ),
-      'sword_cavaliere' => _buildAvatarPartIcon(
-        assetPath: 'assets/images/char_weapon_wood.png',
         isOwned: isOwned,
       ),
       'theme_fantasy' => Icon(
@@ -386,12 +366,12 @@ class _ShopScreenState extends State<ShopScreen> {
         border: Border.all(color: displayColor, width: 4),
         boxShadow: hasGlow && !isOwned
             ? [
-                BoxShadow(
-                  color: displayColor.withValues(alpha: 0.5),
-                  blurRadius: 8,
-                  spreadRadius: 1,
-                ),
-              ]
+          BoxShadow(
+            color: displayColor.withValues(alpha: 0.5),
+            blurRadius: 8,
+            spreadRadius: 1,
+          ),
+        ]
             : null,
       ),
       child: Center(
@@ -407,21 +387,6 @@ class _ShopScreenState extends State<ShopScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  /// Icona parte avatar (cappello, arma)
-  Widget _buildAvatarPartIcon({
-    required String assetPath,
-    required bool isOwned,
-  }) {
-    return Image.asset(
-      assetPath,
-      width: 36,
-      height: 36,
-      color: isOwned ? Colors.grey : null,
-      colorBlendMode: isOwned ? BlendMode.saturation : null,
-      fit: BoxFit.contain,
     );
   }
 
