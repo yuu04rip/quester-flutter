@@ -215,7 +215,8 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
           if (isTheme) {
             final AppTheme targetTheme;
             if (_isThemeActive(itemId)) {
-              targetTheme = AppTheme.fantasy;
+              // 🛡️ CORRETTO: Se è già attivo, lo spegniamo tornando al TEMA BASE
+              targetTheme = AppTheme.basic;
             } else {
               targetTheme = _getTargetTheme(itemId);
             }
@@ -321,16 +322,10 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
           color: isSelected ? theme.colorScheme.secondary : Colors.blueAccent,
         ),
       ),
-      'staff_mago' || 'sword_cavaliere' => Image.asset(
-        'assets/images/char_weapon_wood.png',
-        width: 36,
-        height: 36,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => Icon(
-          Icons.colorize,
-          size: 32,
-          color: isSelected ? theme.colorScheme.secondary : Colors.brown,
-        ),
+      'staff_mago' || 'sword_cavaliere' => Icon(
+        Icons.visibility,
+        size: 32,
+        color: isSelected ? theme.colorScheme.secondary : Colors.blueAccent,
       ),
       'gun_spaziale' => Image.asset(
         'assets/images/ic_gun_spaziale.png',
@@ -397,7 +392,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
       case 'reward_tema_regale':
         return AppTheme.regale;
       default:
-        return AppTheme.fantasy;
+        return AppTheme.basic;
     }
   }
 
@@ -410,7 +405,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
       case 'reward_tema_regale':
         return 'Tema Regale';
       default:
-        return _formatCosmeticName(itemId);
+        return 'Tema Base';
     }
   }
 

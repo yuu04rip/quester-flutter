@@ -1,18 +1,19 @@
-// lib/theme/app_theme.dart
+// lib/ui/theme/app_theme.dart
 
 import 'package:flutter/material.dart';
 import 'colors.dart';
 
 /// Tipo di tema
 enum AppTheme {
-  fantasy,
-  arcade,
-  regale;
+  basic,     // 🛡️ Il tema base/di default dell'applicazione
+  fantasy,   // ✨ Il tema "Bacheca Fantasy" acquistabile nello shop
+  arcade,    // 🕹️ Il tema Arcade
+  regale;    // 👑 Il tema Regale 3D
 
   static AppTheme fromString(String value) {
     return AppTheme.values.firstWhere(
           (theme) => theme.name.toUpperCase() == value.toUpperCase(),
-      orElse: () => AppTheme.fantasy,
+      orElse: () => AppTheme.basic,
     );
   }
 }
@@ -21,8 +22,9 @@ enum AppTheme {
 class ThemeManager {
   ThemeManager._();
 
+  // Di default l'app parte con il tema basico
   static final ValueNotifier<AppTheme> themeNotifier =
-  ValueNotifier<AppTheme>(AppTheme.fantasy);
+  ValueNotifier<AppTheme>(AppTheme.basic);
 
   static AppTheme get currentTheme => themeNotifier.value;
 
@@ -32,16 +34,19 @@ class ThemeManager {
 
   static bool isThemeOwned(AppTheme theme, List<String> ownedItems) {
     final themeId = switch (theme) {
+      AppTheme.basic => '', // Il tema base non si compra nello shop
       AppTheme.fantasy => 'theme_fantasy',
       AppTheme.arcade => 'theme_arcade',
-      AppTheme.regale => 'reward_tema_regale', // ID unificato standard
+      AppTheme.regale => 'reward_tema_regale',
     };
+    if (themeId.isEmpty) return true; // Il base è sempre posseduto
     return ownedItems.contains(themeId);
   }
 
   static String getThemeDisplayName(AppTheme theme) {
     return switch (theme) {
-      AppTheme.fantasy => 'Fantasy',
+      AppTheme.basic => 'Base',
+      AppTheme.fantasy => 'Bacheca Fantasy',
       AppTheme.arcade => 'Arcade',
       AppTheme.regale => 'Regale 3D',
     };
@@ -64,8 +69,18 @@ class QuesterTheme {
       scaffoldBackgroundColor: colorScheme.surface,
       fontFamily: themeType == AppTheme.arcade ? 'QuesterPixel' : 'QuesterFantasy',
 
-      // PERSONALIZZAZIONI PER IL TEMA REGALE
-      cardTheme: themeType == AppTheme.regale
+      // PERSONALIZZAZIONI PER IL TEMA FANTASY (Acquistabile)
+      cardTheme: themeType == AppTheme.fantasy
+          ? CardThemeData(
+        color: const Color(0xFF161122),
+        elevation: 6,
+        shadowColor: Colors.black.withValues(alpha: 0.5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF6A4FA5), width: 1.2),
+        ),
+      )
+          : themeType == AppTheme.regale
           ? CardThemeData(
         color: const Color(0xFF181109),
         elevation: 10,
@@ -77,7 +92,20 @@ class QuesterTheme {
       )
           : null,
 
-      appBarTheme: themeType == AppTheme.regale
+      appBarTheme: themeType == AppTheme.fantasy
+          ? const AppBarTheme(
+        backgroundColor: Color(0xFF130E1D),
+        foregroundColor: FantasyGold,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontFamily: 'QuesterFantasy',
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: FantasyGold,
+        ),
+      )
+          : themeType == AppTheme.regale
           ? const AppBarTheme(
         backgroundColor: Color(0xFF120D08),
         foregroundColor: Color(0xFFF4C95D),
@@ -93,7 +121,15 @@ class QuesterTheme {
       )
           : null,
 
-      dialogTheme: themeType == AppTheme.regale
+      dialogTheme: themeType == AppTheme.fantasy
+          ? DialogThemeData(
+        backgroundColor: const Color(0xFF181226),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF7A59C2), width: 1.5),
+        ),
+      )
+          : themeType == AppTheme.regale
           ? DialogThemeData(
         backgroundColor: const Color(0xFF151008),
         shape: RoundedRectangleBorder(
@@ -103,7 +139,24 @@ class QuesterTheme {
       )
           : null,
 
-      elevatedButtonTheme: themeType == AppTheme.regale
+      elevatedButtonTheme: themeType == AppTheme.fantasy
+          ? ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: FantasyGold,
+          foregroundColor: FantasyBackground,
+          elevation: 4,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            fontFamily: 'QuesterFantasy',
+          ),
+        ),
+      )
+          : themeType == AppTheme.regale
           ? ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFF4C95D),
@@ -127,7 +180,27 @@ class QuesterTheme {
       )
           : null,
 
-      inputDecorationTheme: themeType == AppTheme.regale
+      inputDecorationTheme: themeType == AppTheme.fantasy
+          ? InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF130E1D),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF5E4399), width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF4A3478), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: FantasyGold, width: 1.5),
+        ),
+        labelStyle: const TextStyle(color: FantasyText, fontFamily: 'QuesterFantasy'),
+        hintStyle: const TextStyle(color: Color(0xFF8A79B0), fontFamily: 'QuesterFantasy'),
+      )
+          : themeType == AppTheme.regale
           ? InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF140F09),
@@ -149,7 +222,18 @@ class QuesterTheme {
       )
           : null,
 
-      chipTheme: themeType == AppTheme.regale
+      chipTheme: themeType == AppTheme.fantasy
+          ? ChipThemeData(
+        backgroundColor: const Color(0xFF1E172F),
+        selectedColor: const Color(0xFF3B2A66),
+        labelStyle: const TextStyle(color: FantasyText, fontFamily: 'QuesterFantasy'),
+        secondaryLabelStyle: const TextStyle(color: FantasyGold, fontFamily: 'QuesterFantasy'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Color(0xFF5A438F), width: 1),
+        ),
+      )
+          : themeType == AppTheme.regale
           ? ChipThemeData(
         backgroundColor: const Color(0xFF1C140B),
         selectedColor: const Color(0xFF33230F),
@@ -163,7 +247,16 @@ class QuesterTheme {
       )
           : null,
 
-      floatingActionButtonTheme: themeType == AppTheme.regale
+      floatingActionButtonTheme: themeType == AppTheme.fantasy
+          ? const FloatingActionButtonThemeData(
+        backgroundColor: FantasyGold,
+        foregroundColor: FantasyBackground,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+      )
+          : themeType == AppTheme.regale
           ? const FloatingActionButtonThemeData(
         backgroundColor: Color(0xFFF4C95D),
         foregroundColor: Color(0xFF1A1208),
@@ -175,7 +268,19 @@ class QuesterTheme {
       )
           : null,
 
-      navigationBarTheme: themeType == AppTheme.regale
+      navigationBarTheme: themeType == AppTheme.fantasy
+          ? const NavigationBarThemeData(
+        backgroundColor: Color(0xFF130E1D),
+        indicatorColor: Color(0xFF3A2B5E),
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(
+            fontFamily: 'QuesterFantasy',
+            fontWeight: FontWeight.w600,
+            color: FantasyGold,
+          ),
+        ),
+      )
+          : themeType == AppTheme.regale
           ? const NavigationBarThemeData(
         backgroundColor: Color(0xFF120D08),
         indicatorColor: Color(0xFF3A2A12),
@@ -189,7 +294,13 @@ class QuesterTheme {
       )
           : null,
 
-      dividerTheme: themeType == AppTheme.regale
+      dividerTheme: themeType == AppTheme.fantasy
+          ? const DividerThemeData(
+        color: Color(0xFF42306B),
+        thickness: 0.8,
+        space: 1,
+      )
+          : themeType == AppTheme.regale
           ? const DividerThemeData(
         color: Color(0xFF4D3A1C),
         thickness: 0.8,
@@ -240,27 +351,47 @@ class QuesterTheme {
       );
     }
 
-    // Fantasy
+    if (themeType == AppTheme.fantasy) {
+      return darkTheme
+          ? const ColorScheme.dark(
+        primary: FantasyPurple,
+        onPrimary: FantasyText,
+        secondary: FantasyGold,
+        onSecondary: FantasyBackground,
+        surface: FantasySurface,
+        onSurface: FantasyText,
+        error: FantasyError,
+        onError: FantasyText,
+      )
+          : const ColorScheme.light(
+        primary: FantasyLightPurple,
+        onPrimary: FantasyLightText,
+        secondary: FantasyLightGold,
+        onSecondary: FantasyLightText,
+        surface: FantasyLightSurface,
+        onSurface: FantasyLightText,
+        error: FantasyLightError,
+        onError: FantasyLightSurface,
+      );
+    }
+
+    // Tema Base / Default (quello classico iniziale dell'app)
     return darkTheme
         ? const ColorScheme.dark(
-      primary: FantasyPurple,
-      onPrimary: FantasyText,
-      secondary: FantasyGold,
-      onSecondary: FantasyBackground,
-      surface: FantasySurface,
-      onSurface: FantasyText,
-      error: FantasyError,
-      onError: FantasyText,
+      primary: Color(0xFF7C4DFF),
+      onPrimary: Colors.white,
+      secondary: Color(0xFFFFD700),
+      onSecondary: Colors.black,
+      surface: Color(0xFF121212),
+      onSurface: Colors.white,
     )
         : const ColorScheme.light(
-      primary: FantasyLightPurple,
-      onPrimary: FantasyLightText,
-      secondary: FantasyLightGold,
-      onSecondary: FantasyLightText,
-      surface: FantasyLightSurface,
-      onSurface: FantasyLightText,
-      error: FantasyLightError,
-      onError: FantasyLightSurface,
+      primary: Color(0xFF6200EE),
+      onPrimary: Colors.white,
+      secondary: Color(0xFF03DAC6),
+      onSecondary: Colors.black,
+      surface: Colors.white,
+      onSurface: Colors.black,
     );
   }
 
@@ -294,19 +425,31 @@ class QuesterTheme {
       );
     }
 
-    // Fantasy
+    if (themeType == AppTheme.fantasy) {
+      return const TextTheme(
+        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'QuesterFantasy'),
+        headlineMedium: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: 'QuesterFantasy'),
+        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, fontFamily: 'QuesterFantasy'),
+        titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
+        titleSmall: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
+        bodyLarge: TextStyle(fontSize: 16, fontFamily: 'QuesterFantasy'),
+        bodyMedium: TextStyle(fontSize: 14, fontFamily: 'QuesterFantasy'),
+        bodySmall: TextStyle(fontSize: 12, fontFamily: 'QuesterFantasy'),
+        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
+        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
+        labelSmall: TextStyle(fontSize: 11, fontFamily: 'QuesterFantasy'),
+      );
+    }
+
+    // Tema Base / Default
     return const TextTheme(
-      headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'QuesterFantasy'),
-      headlineMedium: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: 'QuesterFantasy'),
-      titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, fontFamily: 'QuesterFantasy'),
-      titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
-      titleSmall: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
-      bodyLarge: TextStyle(fontSize: 16, fontFamily: 'QuesterFantasy'),
-      bodyMedium: TextStyle(fontSize: 14, fontFamily: 'QuesterFantasy'),
-      bodySmall: TextStyle(fontSize: 12, fontFamily: 'QuesterFantasy'),
-      labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
-      labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, fontFamily: 'QuesterFantasy'),
-      labelSmall: TextStyle(fontSize: 11, fontFamily: 'QuesterFantasy'),
+      headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+      headlineMedium: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+      titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+      titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+      bodyLarge: TextStyle(fontSize: 16),
+      bodyMedium: TextStyle(fontSize: 14),
+      bodySmall: TextStyle(fontSize: 12),
     );
   }
 }

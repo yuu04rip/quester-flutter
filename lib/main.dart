@@ -24,7 +24,7 @@ import 'ui/theme/app_theme.dart';
 
 // Plugin per le notifiche locali
 final FlutterLocalNotificationsPlugin notificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+FlutterLocalNotificationsPlugin();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,7 @@ Future<void> main() async {
     databaseFactory = databaseFactoryFfi;
   }
 
-  // Inizializza le notifiche
+  // Inizializza le notifiche e richiedi i permessi
   await _initNotifications();
 
   // Inizializza il database
@@ -106,13 +106,13 @@ Future<void> main() async {
   );
 }
 
-/// Inizializza le notifiche locali
+/// Inizializza le notifiche locali e richiede i permessi di sistema (Android 13+ / iOS)
 Future<void> _initNotifications() async {
   const AndroidInitializationSettings androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+  AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const DarwinInitializationSettings iosSettings =
-      DarwinInitializationSettings();
+  DarwinInitializationSettings();
 
   const InitializationSettings initSettings = InitializationSettings(
     android: androidSettings,
@@ -120,6 +120,23 @@ Future<void> _initNotifications() async {
   );
 
   await notificationsPlugin.initialize(initSettings);
+
+  // 🛡️ Richiesta esplicita dei permessi di notifica (fondamentale per Android 13+)
+  if (Platform.isAndroid) {
+    final androidImplementation =
+    notificationsPlugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidImplementation?.requestNotificationsPermission();
+  } else if (Platform.isIOS) {
+    final iosImplementation =
+    notificationsPlugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    await iosImplementation?.requestPermissions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+  }
 }
 
 /// Inizializza o aggiorna gli oggetti dello shop forzando i dati corretti
@@ -337,27 +354,27 @@ class _QuesterAppState extends State<QuesterApp> {
           home: ArcadeBackground(
             child: _isLoggedIn
                 ? NavBar(
-                    services: NavServices(
-                      missionService: widget.missionService,
-                      authService: widget.authService,
-                      shopService: widget.shopService,
-                    ),
-                    repositories: NavRepositories(
-                      missionRepository: widget.missionRepository,
-                      userRepository: widget.userRepository,
-                      shopDao: widget.shopDao,
-                    ),
-                    sessionManager: widget.sessionManager,
-                    onLogout: () {
-                      setState(() => _isLoggedIn = false);
-                    },
-                  )
+              services: NavServices(
+                missionService: widget.missionService,
+                authService: widget.authService,
+                shopService: widget.shopService,
+              ),
+              repositories: NavRepositories(
+                missionRepository: widget.missionRepository,
+                userRepository: widget.userRepository,
+                shopDao: widget.shopDao,
+              ),
+              sessionManager: widget.sessionManager,
+              onLogout: () {
+                setState(() => _isLoggedIn = false);
+              },
+            )
                 : AuthScreen(
-                    authService: widget.authService,
-                    onAuthSuccess: () {
-                      setState(() => _isLoggedIn = true);
-                    },
-                  ),
+              authService: widget.authService,
+              onAuthSuccess: () {
+                setState(() => _isLoggedIn = true);
+              },
+            ),
           ),
         );
       },

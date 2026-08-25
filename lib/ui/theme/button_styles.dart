@@ -11,6 +11,8 @@ class ButtonStyleFactory {
   /// Ottiene lo stile del bottone in base al tema
   static ButtonStyle getButtonStyle(AppTheme theme) {
     switch (theme) {
+      case AppTheme.basic:
+        return _basicButtonStyle;
       case AppTheme.fantasy:
         return _fantasyButtonStyle;
       case AppTheme.arcade:
@@ -19,6 +21,26 @@ class ButtonStyleFactory {
         return _regaleButtonStyle;
     }
   }
+
+  /// Stile Base
+  static final ButtonStyle _basicButtonStyle = ButtonStyle(
+    backgroundColor: WidgetStateProperty.all(const Color(0xFF7C4DFF)),
+    foregroundColor: WidgetStateProperty.all(Colors.white),
+    textStyle: WidgetStateProperty.all(
+      const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    shape: WidgetStateProperty.all(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    ),
+    padding: WidgetStateProperty.all(
+      const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+    ),
+  );
 
   /// Stile Fantasy
   static final ButtonStyle _fantasyButtonStyle = ButtonStyle(

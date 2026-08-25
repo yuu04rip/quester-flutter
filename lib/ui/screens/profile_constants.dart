@@ -1,23 +1,35 @@
 // lib/screens/profile_constants.dart
 
-// ✅ Import per i colori
-
 // ============================================================
-// 1. SISTEMA XP E LIVELLI (LINEARE)
+// 1. SISTEMA XP E LIVELLI (LINEARE CON CAP A 50)
 // ============================================================
 
 const int XP_BASE = 100;
 const int XP_INCREMENT = 50;
+const int MAX_LEVEL = 50; // 🛡️ Limite massimo imposto
 
 int getXpRequiredForLevel(int level) {
   return XP_BASE + (level - 1) * XP_INCREMENT;
 }
 
+/// Calcola il totale esatto di XP necessari per arrivare al livello massimo
+int getTotalXpRequiredForLevel(int level) {
+  var total = 0;
+  for (var i = 1; i < level; i++) {
+    total += getXpRequiredForLevel(i);
+  }
+  return total;
+}
+
 int calculateLevelFromXp(int totalXp) {
+  final maxXp = getTotalXpRequiredForLevel(MAX_LEVEL);
+  // Se gli XP superano il cap massimo, blocca direttamente al livello 50
+  if (totalXp >= maxXp) return MAX_LEVEL;
+
   var remainingXp = totalXp;
   var level = 1;
 
-  while (true) {
+  while (level < MAX_LEVEL) {
     final xpNeeded = getXpRequiredForLevel(level);
     if (remainingXp >= xpNeeded) {
       remainingXp -= xpNeeded;
@@ -26,11 +38,15 @@ int calculateLevelFromXp(int totalXp) {
       break;
     }
   }
-  return level;
+  return level.clamp(1, MAX_LEVEL);
 }
 
 int getXpInCurrentLevel(int totalXp, [int? level]) {
   final currentLevel = level ?? calculateLevelFromXp(totalXp);
+  if (currentLevel >= MAX_LEVEL) {
+    return getXpRequiredForLevel(MAX_LEVEL); // Barra piena al massimo livello
+  }
+
   var totalXpForPreviousLevels = 0;
   for (var i = 1; i < currentLevel; i++) {
     totalXpForPreviousLevels += getXpRequiredForLevel(i);
@@ -40,6 +56,9 @@ int getXpInCurrentLevel(int totalXp, [int? level]) {
 
 double getXpProgress(int totalXp, [int? level]) {
   final currentLevel = level ?? calculateLevelFromXp(totalXp);
+  if (currentLevel >= MAX_LEVEL) {
+    return 1.0; // 🛡️ Barra sempre al 100% una volta raggiunto il livello 50
+  }
   final xpInCurrent = getXpInCurrentLevel(totalXp, currentLevel);
   final xpNeeded = getXpRequiredForLevel(currentLevel);
   return (xpInCurrent / xpNeeded).clamp(0.0, 1.0);

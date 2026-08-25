@@ -37,6 +37,9 @@ class _MissionListScreenState extends State<MissionListScreen> {
   String _username = 'Eroe';
   bool _isLoading = true;
 
+  // 🛡️ Anti-Spam: Tiene traccia delle missioni in fase di elaborazione/completamento
+  final Set<int> _processingMissionIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -46,7 +49,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
   Future<void> _loadData() async {
     final userId = await widget.sessionManager.loggedUserId();
 
-    // FIX: Se l'utente non è loggato, interrompiamo il caricamento per evitare il blocco perenne in loading
+    // Se l'utente non è loggato, interrompiamo il caricamento per evitare il blocco perenne in loading
     if (userId == null) {
       if (!mounted) return;
       setState(() {
@@ -111,10 +114,14 @@ class _MissionListScreenState extends State<MissionListScreen> {
             itemCount: _filteredMissions.length,
             itemBuilder: (context, index) {
               final missionWithTasks = _filteredMissions[index];
+              final missionId = missionWithTasks.mission.id;
+              final isProcessing = missionId != null && _processingMissionIds.contains(missionId);
+
               return MissionCard(
                 missionWithTasks: missionWithTasks,
                 onClick: () => _showMissionDetail(context, missionWithTasks),
-                onCompleteClick: () => _handleCompleteMission(context, missionWithTasks),
+                // 🛡️ Se è in elaborazione, disabilitiamo temporaneamente il click sul completamento
+                onCompleteClick: isProcessing ? () {} : () => _handleCompleteMission(context, missionWithTasks),
                 onEditClick: () => _showEditMissionDialog(context, missionWithTasks),
                 onResetClick: () => _showResetMissionDialog(context, missionWithTasks),
                 onDeleteClick: () => _handleDeleteMission(context, missionWithTasks),
@@ -131,12 +138,34 @@ class _MissionListScreenState extends State<MissionListScreen> {
   }
 
   Future<void> _handleCompleteMission(BuildContext context, MissionWithSubTasks missionWithTasks) async {
+    final missionId = missionWithTasks.mission.id;
+    if (missionId == null) return;
+
+    // 🛡️ Anti-Spam: Se la missione è già in elaborazione o completata, blocca il click
+    if (_processingMissionIds.contains(missionId) || missionWithTasks.mission.completed) {
+      return;
+    }
+
     final userId = await widget.sessionManager.loggedUserId();
     if (userId == null) return;
 
-    if (!missionWithTasks.mission.completed) {
+    // Aggiunge la missione al set delle elaborazioni in corso
+    setState(() {
+      _processingMissionIds.add(missionId);
+    });
+
+    try {
       await widget.missionService.completeMission(missionWithTasks.mission, userId);
-      _loadData();
+      // Piccolo ritardo di sicurezza visivo per evitare spam immediato
+      await Future.delayed(const Duration(milliseconds: 400));
+      await _loadData();
+    } finally {
+      // Rimuove il blocco alla fine
+      if (mounted) {
+        setState(() {
+          _processingMissionIds.remove(missionId);
+        });
+      }
     }
   }
 

@@ -272,9 +272,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  const Positioned(
+                   Positioned(
                     top: -6,
-                    child: RegalCrownBadge(size: 30),
+                    child: RegalCrownBadge(size: 30, isUnlocked: isMaxLevel),
                   ),
                 ],
               ),

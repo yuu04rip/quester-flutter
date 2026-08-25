@@ -29,6 +29,7 @@ class UserRepository {
   static const int xpBase = 100;
   static const int xpIncrement = 50;
   static const int maxLevel = 50;
+  static const int absoluteMaxXp = 63750; // 🛡️ Valore massimo assoluto fisso
 
   final UserDao userDao;
   final OwnedCosmeticDao? ownedCosmeticDao;
@@ -39,8 +40,21 @@ class UserRepository {
   Future<User?> getUserById(int userId) async {
     final user = await userDao.getUserById(userId);
     if (user != null) {
+      final maxXp = getTotalXpRequiredForLevel(maxLevel);
+
+      // 🛡️ CONTROLLO CORRETTIVO: Se l'utente ha più XP del massimo consentito
+      if (user.xpTotale > maxXp || user.livello > maxLevel) {
+        final correctedUser = user.copyWith(
+          xpTotale: maxXp,
+          livello: maxLevel,
+        );
+        await userDao.updateUser(correctedUser);
+        await unlockCosmetic(userId, 'reward_corona');
+        await unlockCosmetic(userId, 'reward_tema_regale');
+        return correctedUser;
+      }
+
       final currentLevel = calculateLevelFromXp(user.xpTotale);
-      // Sblocco automatico immediato se l'utente è al livello 50
       if (currentLevel >= maxLevel) {
         await unlockCosmetic(userId, 'reward_corona');
         await unlockCosmetic(userId, 'reward_tema_regale');
@@ -54,9 +68,24 @@ class UserRepository {
     return xpBase + (level - 1) * xpIncrement;
   }
 
+  /// XP totale necessario per raggiungere un livello specifico.
+  int getTotalXpRequiredForLevel(int level) {
+    if (level >= maxLevel) return absoluteMaxXp; // 🛡️ Ritorna direttamente 63750 per il livello 50
+    var total = 0;
+    for (var i = 1; i < level; i++) {
+      total += getXpRequiredForLevel(i);
+    }
+    return total;
+  }
+
+  int _capXpAtMaxLevel(int totalXp) {
+    return totalXp >= absoluteMaxXp ? absoluteMaxXp : totalXp;
+  }
+
   /// Calcola livello da XP totali (Bloccato rigorosamente a maxLevel = 50)
   int calculateLevelFromXp(int totalXp) {
-    var remainingXp = totalXp;
+    final cappedXp = _capXpAtMaxLevel(totalXp);
+    var remainingXp = cappedXp;
     var level = 1;
 
     while (level < maxLevel) {
@@ -76,7 +105,7 @@ class UserRepository {
   int getXpInCurrentLevel(int totalXp, [int? level]) {
     final currentLevel = level ?? calculateLevelFromXp(totalXp);
     if (currentLevel >= maxLevel) {
-      return getXpRequiredForLevel(maxLevel); // Al livello max, restituisce il totale del livello per riempire la barra
+      return getXpRequiredForLevel(maxLevel);
     }
 
     var xpForPreviousLevels = 0;
@@ -92,7 +121,7 @@ class UserRepository {
   double getXpProgress(int totalXp, [int? level]) {
     final currentLevel = level ?? calculateLevelFromXp(totalXp);
     if (currentLevel >= maxLevel) {
-      return 1.0; // Barra piena al livello massimo!
+      return 1.0;
     }
     final xpInCurrent = getXpInCurrentLevel(totalXp, currentLevel);
     final xpNeeded = getXpRequiredForLevel(currentLevel);
@@ -116,11 +145,26 @@ class UserRepository {
     final current = await getUserById(userId);
     if (current == null) return;
 
-    final oldLevel = calculateLevelFromXp(current.xpTotale);
-    final newXpTotal = current.xpTotale + xpGained;
+    final currentLevel = calculateLevelFromXp(current.xpTotale);
+    if (currentLevel >= maxLevel) {
+      final cappedXp = getTotalXpRequiredForLevel(maxLevel);
+      if (current.xpTotale != cappedXp || current.livello != maxLevel) {
+        await userDao.updateUser(
+          current.copyWith(xpTotale: cappedXp, livello: maxLevel),
+        );
+      }
+      return;
+    }
+
+    final oldLevel = currentLevel;
+    final maxXp = getTotalXpRequiredForLevel(maxLevel);
+    final newXpTotal = (current.xpTotale + xpGained).clamp(0, maxXp);
     final newLevel = calculateLevelFromXp(newXpTotal);
 
-    var updatedUser = current.copyWith(xpTotale: newXpTotal, livello: newLevel);
+    var updatedUser = current.copyWith(
+      xpTotale: newLevel >= maxLevel ? maxXp : newXpTotal,
+      livello: newLevel,
+    );
 
     if (newLevel > oldLevel) {
       final coinsEarned = getLevelUpCoins(newLevel);
@@ -132,7 +176,7 @@ class UserRepository {
     await userDao.updateUser(updatedUser);
 
     // 🛡️ CONTROLLO DI SICUREZZA UNIVERSALE:
-    if (newLevel >= 50) {
+    if (newLevel >= maxLevel) {
       await unlockCosmetic(userId, 'reward_corona');
       await unlockCosmetic(userId, 'reward_tema_regale');
     }
@@ -197,7 +241,6 @@ class UserRepository {
   Future<List<OwnedCosmetic>> getOwnedCosmetics(int userId) async {
     final rawOwned = await ownedCosmeticDao?.getOwnedByUser(userId) ?? [];
 
-    // Mappa i vecchi ID e rimuove eventuali duplicati basati su itemId
     final Map<String, OwnedCosmetic> uniqueMap = {};
     for (var cosmetic in rawOwned) {
       String resolvedId = cosmetic.itemId;
@@ -229,9 +272,9 @@ class UserRepository {
 
   /// Salva cosmetici equipaggiati
   Future<void> saveEquippedCosmetics(
-    int userId,
-    AvatarCosmetics cosmetics,
-  ) async {
+      int userId,
+      AvatarCosmetics cosmetics,
+      ) async {
     final current = await getUserById(userId);
     if (current == null) return;
 
@@ -249,7 +292,7 @@ class UserRepository {
     if (value == null || value.isEmpty || value.contains('NONE'))
       return HatType.none;
     return HatType.values.firstWhere(
-      (e) => e.name == value.toLowerCase(),
+          (e) => e.name == value.toLowerCase(),
       orElse: () => HatType.none,
     );
   }
@@ -259,7 +302,7 @@ class UserRepository {
     if (value == null || value.isEmpty || value.contains('NONE'))
       return WeaponType.none;
     return WeaponType.values.firstWhere(
-      (e) => e.name == value.toLowerCase(),
+          (e) => e.name == value.toLowerCase(),
       orElse: () => WeaponType.none,
     );
   }
@@ -270,7 +313,7 @@ class UserRepository {
       return FrameType.basic;
     }
     return FrameType.values.firstWhere(
-      (e) => e.name == value.toLowerCase(),
+          (e) => e.name == value.toLowerCase(),
       orElse: () => FrameType.basic,
     );
   }
