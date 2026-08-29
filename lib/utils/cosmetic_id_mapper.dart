@@ -16,7 +16,7 @@ class CosmeticIdMapper {
       case HatType.mago:
         return 'hat_mago';
       case HatType.cavaliere:
-        return 'hat_cavaliere'; // 💡 Aggiunto supporto elmo cavaliere
+        return 'hat_cavaliere'; // Aggiunto supporto elmo cavaliere
       case HatType.scifi:
         return 'visor_futuristico';
       default:
@@ -31,7 +31,7 @@ class CosmeticIdMapper {
         return HatType.mago;
       case 'hat_cavaliere':
       case 'elmo_cavaliere':
-        return HatType.cavaliere; // 💡 Aggiunto supporto elmo cavaliere
+        return HatType.cavaliere; // Aggiunto supporto elmo cavaliere
       case 'visor_futuristico':
         return HatType.scifi;
       default:

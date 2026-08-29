@@ -150,7 +150,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final isArcade = currentTheme == AppTheme.arcade;
     final isRegale = currentTheme == AppTheme.regale;
 
-    // 💡 Scaffold con sfondo trasparente per permettere al background personalizzato di vedersi
+    // Scaffold con sfondo trasparente per permettere al background personalizzato di vedersi
     final scaffold = Scaffold(
       backgroundColor: Colors.transparent,
       body: Center(
@@ -192,7 +192,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
 
-    // 👑 Applicazione dello sfondo coerente con il tema attivo
+    // Applicazione dello sfondo coerente con il tema attivo
     if (isArcade) {
       return ArcadeBackground(child: scaffold);
     } else if (isRegale) {

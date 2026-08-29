@@ -1,9 +1,10 @@
 // lib/data/repository/user_repository.dart
 
-import '/data/dao/user_dao.dart';
-import '/data/dao/owned_cosmetic_dao.dart';
-import '/data/models/user.dart';
-import '/data/models/owned_cosmetic.dart';
+import 'package:flutter/foundation.dart';
+import 'package:Quester/data/dao/user_dao.dart';
+import 'package:Quester/data/dao/owned_cosmetic_dao.dart';
+import 'package:Quester/data/models/user.dart';
+import 'package:Quester/data/models/owned_cosmetic.dart';
 
 /// Enum per i cosmetici equipaggiabili
 enum HatType { none, mago, cavaliere, scifi }
@@ -25,41 +26,51 @@ class AvatarCosmetics {
   });
 }
 
-class UserRepository {
+class UserRepository extends ChangeNotifier {
   static const int xpBase = 100;
   static const int xpIncrement = 50;
   static const int maxLevel = 50;
-  static const int absoluteMaxXp = 63750; // 🛡️ Valore massimo assoluto fisso
+  static const int absoluteMaxXp = 63750; // Valore massimo assoluto fisso
 
   final UserDao userDao;
   final OwnedCosmeticDao? ownedCosmeticDao;
 
   UserRepository({required this.userDao, this.ownedCosmeticDao});
 
-  /// Utente per ID con controllo di sicurezza automatico al livello 50
+  /// Notifica i listener del cambiamento dei dati
+  void refresh() {
+    notifyListeners();
+  }
+
+  /// Utente per ID con controllo di sicurezza automatico e self-healing
   Future<User?> getUserById(int userId) async {
     final user = await userDao.getUserById(userId);
-    if (user != null) {
-      final maxXp = getTotalXpRequiredForLevel(maxLevel);
+    if (user == null) return null;
 
-      // 🛡️ CONTROLLO CORRETTIVO: Se l'utente ha più XP del massimo consentito
-      if (user.xpTotale > maxXp || user.livello > maxLevel) {
-        final correctedUser = user.copyWith(
-          xpTotale: maxXp,
-          livello: maxLevel,
-        );
-        await userDao.updateUser(correctedUser);
-        await unlockCosmetic(userId, 'reward_corona');
-        await unlockCosmetic(userId, 'reward_tema_regale');
-        return correctedUser;
-      }
+    final calculatedLevel = calculateLevelFromXp(user.xpTotale);
+    final maxXp = getTotalXpRequiredForLevel(maxLevel);
 
-      final currentLevel = calculateLevelFromXp(user.xpTotale);
-      if (currentLevel >= maxLevel) {
+    // Self-healing: correzione se XP o livello sono incoerenti o superano i limiti
+    if (user.xpTotale > maxXp || user.livello != calculatedLevel) {
+      final correctedUser = user.copyWith(
+        xpTotale: user.xpTotale.clamp(0, maxXp),
+        livello: calculatedLevel,
+      );
+      await userDao.updateUser(correctedUser);
+      notifyListeners();
+      
+      if (calculatedLevel >= maxLevel) {
         await unlockCosmetic(userId, 'reward_corona');
         await unlockCosmetic(userId, 'reward_tema_regale');
       }
+      return correctedUser;
     }
+
+    if (calculatedLevel >= maxLevel) {
+      await unlockCosmetic(userId, 'reward_corona');
+      await unlockCosmetic(userId, 'reward_tema_regale');
+    }
+    
     return user;
   }
 
@@ -70,7 +81,7 @@ class UserRepository {
 
   /// XP totale necessario per raggiungere un livello specifico.
   int getTotalXpRequiredForLevel(int level) {
-    if (level >= maxLevel) return absoluteMaxXp; // 🛡️ Ritorna direttamente 63750 per il livello 50
+    if (level >= maxLevel) return absoluteMaxXp;
     var total = 0;
     for (var i = 1; i < level; i++) {
       total += getXpRequiredForLevel(i);
@@ -85,20 +96,19 @@ class UserRepository {
   /// Calcola livello da XP totali (Bloccato rigorosamente a maxLevel = 50)
   int calculateLevelFromXp(int totalXp) {
     final cappedXp = _capXpAtMaxLevel(totalXp);
-    var remainingXp = cappedXp;
-    var level = 1;
+    
+    if (cappedXp >= absoluteMaxXp) return maxLevel;
 
+    var level = 1;
     while (level < maxLevel) {
-      final xpNeeded = getXpRequiredForLevel(level);
-      if (remainingXp >= xpNeeded) {
-        remainingXp -= xpNeeded;
-        level++;
-      } else {
+      final nextLevelXp = getTotalXpRequiredForLevel(level + 1);
+      if (cappedXp < nextLevelXp) {
         break;
       }
+      level++;
     }
 
-    return level >= maxLevel ? maxLevel : level.clamp(1, maxLevel);
+    return level.clamp(1, maxLevel);
   }
 
   /// XP nel livello corrente
@@ -108,13 +118,8 @@ class UserRepository {
       return getXpRequiredForLevel(maxLevel);
     }
 
-    var xpForPreviousLevels = 0;
-    for (var i = 1; i < currentLevel; i++) {
-      xpForPreviousLevels += getXpRequiredForLevel(i);
-    }
-    return (totalXp - xpForPreviousLevels) < 0
-        ? 0
-        : (totalXp - xpForPreviousLevels);
+    final currentLevelStart = getTotalXpRequiredForLevel(currentLevel);
+    return (totalXp - currentLevelStart).clamp(0, totalXp);
   }
 
   /// Progresso XP (0.0 - 1.0) -> Al livello massimo restituisce sempre 1.0 (barra piena)
@@ -123,9 +128,14 @@ class UserRepository {
     if (currentLevel >= maxLevel) {
       return 1.0;
     }
-    final xpInCurrent = getXpInCurrentLevel(totalXp, currentLevel);
-    final xpNeeded = getXpRequiredForLevel(currentLevel);
-    return (xpInCurrent / xpNeeded).clamp(0.0, 1.0);
+    
+    final xpInLevel = getXpInCurrentLevel(totalXp, currentLevel);
+    final currentLevelStart = getTotalXpRequiredForLevel(currentLevel);
+    final nextLevelStart = getTotalXpRequiredForLevel(currentLevel + 1);
+    final xpNeededForLevel = nextLevelStart - currentLevelStart;
+    
+    if (xpNeededForLevel <= 0) return 1.0;
+    return (xpInLevel / xpNeededForLevel).clamp(0.0, 1.0);
   }
 
   /// Monete per level-up
@@ -138,7 +148,7 @@ class UserRepository {
     return 0;
   }
 
-  /// ✅ Aggiungi XP con sblocco automatico al livello 50
+  /// Aggiungi XP con sblocco automatico al livello 50
   Future<void> addXp(int userId, int xpGained) async {
     if (xpGained <= 0) return;
 
@@ -146,36 +156,36 @@ class UserRepository {
     if (current == null) return;
 
     final currentLevel = calculateLevelFromXp(current.xpTotale);
+    final maxXp = getTotalXpRequiredForLevel(maxLevel);
+
     if (currentLevel >= maxLevel) {
-      final cappedXp = getTotalXpRequiredForLevel(maxLevel);
-      if (current.xpTotale != cappedXp || current.livello != maxLevel) {
+      if (current.xpTotale != maxXp || current.livello != maxLevel) {
         await userDao.updateUser(
-          current.copyWith(xpTotale: cappedXp, livello: maxLevel),
+          current.copyWith(xpTotale: maxXp, livello: maxLevel),
         );
       }
       return;
     }
 
     final oldLevel = currentLevel;
-    final maxXp = getTotalXpRequiredForLevel(maxLevel);
     final newXpTotal = (current.xpTotale + xpGained).clamp(0, maxXp);
     final newLevel = calculateLevelFromXp(newXpTotal);
 
-    var updatedUser = current.copyWith(
-      xpTotale: newLevel >= maxLevel ? maxXp : newXpTotal,
-      livello: newLevel,
-    );
-
-    if (newLevel > oldLevel) {
-      final coinsEarned = getLevelUpCoins(newLevel);
-      updatedUser = updatedUser.copyWith(
-        coins: updatedUser.coins + coinsEarned,
-      );
+    var totalCoinsGained = 0;
+    // Ciclo per accumulare monete di ogni livello superato
+    for (var l = oldLevel + 1; l <= newLevel; l++) {
+      totalCoinsGained += getLevelUpCoins(l);
     }
 
-    await userDao.updateUser(updatedUser);
+    final updatedUser = current.copyWith(
+      xpTotale: newXpTotal,
+      livello: newLevel,
+      coins: current.coins + totalCoinsGained,
+    );
 
-    // 🛡️ CONTROLLO DI SICUREZZA UNIVERSALE:
+    await userDao.updateUser(updatedUser);
+    notifyListeners();
+
     if (newLevel >= maxLevel) {
       await unlockCosmetic(userId, 'reward_corona');
       await unlockCosmetic(userId, 'reward_tema_regale');
@@ -188,6 +198,7 @@ class UserRepository {
     final current = await getUserById(userId);
     if (current == null) return;
     await userDao.updateUser(current.copyWith(coins: current.coins + amount));
+    notifyListeners();
   }
 
   /// Spendi monete
@@ -198,6 +209,7 @@ class UserRepository {
     if (current.coins < amount) return false;
 
     await userDao.updateUser(current.copyWith(coins: current.coins - amount));
+    notifyListeners();
     return true;
   }
 

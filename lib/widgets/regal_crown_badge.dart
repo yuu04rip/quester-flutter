@@ -5,7 +5,7 @@ import '/ui/theme/colors.dart';
 
 class RegalCrownBadge extends StatelessWidget {
   final double size;
-  final bool isUnlocked; // 🛡️ Parametro per decidere se mostrarla o meno
+  final bool isUnlocked; // Parametro per decidere se mostrarla o meno
 
   const RegalCrownBadge({
     super.key,

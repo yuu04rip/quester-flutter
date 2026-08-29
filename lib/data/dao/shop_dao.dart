@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/shop_item.dart';
 
 class ShopDao {
-  final Database db;
+  final DatabaseExecutor db;
 
   ShopDao(this.db);
 
@@ -36,7 +36,7 @@ class ShopDao {
 
   // Upsert di una lista di item
   Future<void> upsertItems(List<ShopItem> items) async {
-    final batch = db.batch();
+    final batch = (db as dynamic).batch();
     for (final item in items) {
       batch.insert(
         'shop_items',

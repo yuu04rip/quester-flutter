@@ -5,10 +5,10 @@ import 'colors.dart';
 
 /// Tipo di tema
 enum AppTheme {
-  basic,     // 🛡️ Il tema base/di default dell'applicazione
-  fantasy,   // ✨ Il tema "Bacheca Fantasy" acquistabile nello shop
-  arcade,    // 🕹️ Il tema Arcade
-  regale;    // 👑 Il tema Regale 3D
+  basic,
+  fantasy,
+  arcade,
+  regale;
 
   static AppTheme fromString(String value) {
     return AppTheme.values.firstWhere(

@@ -87,7 +87,7 @@ class ButtonStyleFactory {
     ),
   );
 
-  /// 👑 Stile Regale (Oro brillante e dettagli imperiali)
+  /// Stile Regale (Oro brillante e dettagli imperiali)
   static final ButtonStyle _regaleButtonStyle = ButtonStyle(
     backgroundColor: WidgetStateProperty.all(RegalGold),
     foregroundColor: WidgetStateProperty.all(RegalBackground),

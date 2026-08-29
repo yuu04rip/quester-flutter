@@ -48,7 +48,9 @@ class NavBar extends StatefulWidget {
   final NavServices services;
   final NavRepositories repositories;
   final SessionManager sessionManager;
-  final VoidCallback onLogout;  // ✅ Callback per il logout
+  final VoidCallback onLogout; // Callback per il logout
+  final int currentIndex; // Ricevuto dal genitore
+  final ValueChanged<int> onTabChanged; // Notifica il cambio tab al genitore
 
   const NavBar({
     super.key,
@@ -56,6 +58,8 @@ class NavBar extends StatefulWidget {
     required this.repositories,
     required this.sessionManager,
     required this.onLogout,
+    required this.currentIndex,
+    required this.onTabChanged,
   });
 
   @override
@@ -63,7 +67,6 @@ class NavBar extends StatefulWidget {
 }
 
 class _NavBarState extends State<NavBar> {
-  int _currentIndex = 1;
   bool _showCustomization = false;
 
   @override
@@ -74,16 +77,14 @@ class _NavBarState extends State<NavBar> {
     final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
     final isRegal = ThemeManager.currentTheme == AppTheme.regale;
 
-    // 💡 Definiamo lo Scaffold principale con sfondo completamente trasparente
+    // Definiamo lo Scaffold principale con sfondo completamente trasparente
     final scaffold = Scaffold(
       backgroundColor: Colors.transparent,
       bottomNavigationBar: _showCustomization
           ? null
           : BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-        },
+        currentIndex: widget.currentIndex,
+        onTap: widget.onTabChanged, // Aggiorna lo stato nel widget padre
         items: navScreensList.map((screen) {
           return BottomNavigationBarItem(
             icon: Icon(screen.icon),
@@ -102,7 +103,7 @@ class _NavBarState extends State<NavBar> {
       ),
     );
 
-    // 👑 Avvolgiamo lo Scaffold nel widget di sfondo corretto in base al tema attivo
+    // Avvolgiamo lo Scaffold nel widget di sfondo corretto in base al tema attivo
     if (isArcade) {
       return ArcadeBackground(child: scaffold);
     } else if (isRegal) {
@@ -117,7 +118,7 @@ class _NavBarState extends State<NavBar> {
     );
   }
 
-  /// ✅ Personalizzazione avatar con dati reali
+  /// Personalizzazione avatar con dati reali
   Widget _buildCustomization() {
     return FutureBuilder<({AvatarCosmetics cosmetics, Set<String> ownedIds})>(
       future: _loadCosmeticData(),
@@ -152,7 +153,7 @@ class _NavBarState extends State<NavBar> {
     );
   }
 
-  /// ✅ Carica i dati reali dei cosmetici
+  /// Carica i dati reali dei cosmetici
   Future<({AvatarCosmetics cosmetics, Set<String> ownedIds})>
   _loadCosmeticData() async {
     final userId = await widget.sessionManager.loggedUserId();
@@ -171,11 +172,12 @@ class _NavBarState extends State<NavBar> {
     );
   }
 
-  /// Costruisce il corpo in base all'indice selezionato
+  /// Costruisce il corpo usando IndexedStack per preservare lo stato dei tab ed evitare reset al cambio tema
   Widget _buildBody() {
-    switch (_currentIndex) {
-      case 0:
-        return ProfileScreen(
+    return IndexedStack(
+      index: widget.currentIndex,
+      children: [
+        ProfileScreen(
           userRepository: widget.repositories.userRepository,
           sessionManager: widget.sessionManager,
           callbacks: ProfileCallbacks(
@@ -194,23 +196,20 @@ class _NavBarState extends State<NavBar> {
               setState(() => _showCustomization = true);
             },
           ),
-        );
-      case 1:
-        return MissionListScreen(
+        ),
+        MissionListScreen(
           missionService: widget.services.missionService,
           missionRepository: widget.repositories.missionRepository,
           userRepository: widget.repositories.userRepository,
           sessionManager: widget.sessionManager,
-        );
-      case 2:
-        return ShopScreen(
+        ),
+        ShopScreen(
           shopService: widget.services.shopService,
           shopDao: widget.repositories.shopDao,
           userRepository: widget.repositories.userRepository,
           sessionManager: widget.sessionManager,
-        );
-      default:
-        return const SizedBox.shrink();
-    }
+        ),
+      ],
+    );
   }
 }

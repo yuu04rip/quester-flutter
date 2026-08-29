@@ -32,7 +32,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
   late Animation<double> _scaleAnimation;
   late Animation<double> _glowAnimation;
   late Animation<double> _particleAnimation;
-  late Animation<double> _pressTranslateAnimation; // 👈 Animazione per l'effetto "pressione fisica" arcade
+  late Animation<double> _pressTranslateAnimation; // Animazione per l'effetto "pressione fisica" arcade
 
   @override
   void initState() {
@@ -106,15 +106,15 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // ✨ Effetto particelle (adattato al tema)
+              // Effetto particelle (adattato al tema)
               if (_controller.value > 0.0 && _controller.value < 1.0)
                 _buildParticles(isArcade, isRegale),
 
-              // ✨ Bagliore magico
+              // Bagliore magico
               if (_glowAnimation.value > 0.0)
                 _buildGlow(isArcade, isRegale),
 
-              // ✨ Bottone principale con transizione fisica di pressione
+              // Bottone principale con transizione fisica di pressione
               Transform.translate(
                 offset: Offset(0, isArcade ? _pressTranslateAnimation.value : 0),
                 child: Transform.scale(
@@ -131,7 +131,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Particelle magiche (Supporta Arcade, Regale o Fantasy)
+  /// Particelle magiche (Supporta Arcade, Regale o Fantasy)
   Widget _buildParticles(bool isArcade, bool isRegale) {
     final progress = _particleAnimation.value;
     const particleCount = 16;
@@ -148,7 +148,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Bagliore magico (colore dinamico in base al tema)
+  /// Bagliore magico (colore dinamico in base al tema)
   Widget _buildGlow(bool isArcade, bool isRegale) {
     final glowOpacity = (1.0 - _glowAnimation.value) * 0.8;
 
@@ -188,7 +188,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
     );
   }
 
-  /// ✨ Bottone principale unificato (Pixel Arcade, Regale 3D o Fantasy)
+  /// Bottone principale unificato (Pixel Arcade, Regale 3D o Fantasy)
   Widget _buildButton(bool isArcade, bool isRegale) {
     final Color textColor;
     final double borderRadius;
@@ -206,7 +206,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
 
     final isPressed = isArcade && _pressTranslateAnimation.value > 1.0;
 
-    // 👑 Gestione decorazione speciale per il tema Regale (Gradiente Oro + Bordo doppio)
+    // Gestione decorazione speciale per il tema Regale (Gradiente Oro + Bordo doppio)
     final BoxDecoration buttonDecoration = isArcade
         ? BoxDecoration(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -322,7 +322,7 @@ class _MagicBurstButtonState extends State<MagicBurstButton>
   }
 }
 
-/// ✨ Painter per le particelle (Supporta Arcade, Regale o Fantasy)
+/// Painter per le particelle (Supporta Arcade, Regale o Fantasy)
 class _ParticlePainter extends CustomPainter {
   final double progress;
   final int particleCount;

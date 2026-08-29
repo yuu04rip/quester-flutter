@@ -79,7 +79,7 @@ const Color ArcadeError = Color(0xFFFF0055);
 const Color ArcadeSuccess = Color(0xFF00FF66);
 
 // ============================================================
-//  👑 COLORI TEMA REGALE (PREMIUM / LIV 50)
+// COLORI TEMA REGALE (PREMIUM / LIV 50)
 // ============================================================
 
 const Color RegalBackground = Color(0xFF0E071B); // Viola notte profondo (Velluto)

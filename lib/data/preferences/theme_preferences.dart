@@ -1,7 +1,7 @@
 // lib/data/preferences/theme_preferences.dart
 
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../ui/theme/app_theme.dart';  // ✅ Import da app_theme.dart
+import '../../ui/theme/app_theme.dart';  // Import da app_theme.dart
 
 /// Classe per la gestione delle preferenze del tema.
 /// Equivalente a ThemePreferences in Kotlin.

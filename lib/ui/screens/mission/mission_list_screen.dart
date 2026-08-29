@@ -37,7 +37,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
   String _username = 'Eroe';
   bool _isLoading = true;
 
-  // 🛡️ Anti-Spam: Tiene traccia delle missioni in fase di elaborazione/completamento
+  // Anti-Spam: Tiene traccia delle missioni in fase di elaborazione/completamento
   final Set<int> _processingMissionIds = {};
 
   @override
@@ -120,7 +120,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
               return MissionCard(
                 missionWithTasks: missionWithTasks,
                 onClick: () => _showMissionDetail(context, missionWithTasks),
-                // 🛡️ Se è in elaborazione, disabilitiamo temporaneamente il click sul completamento
+                // Se è in elaborazione, disabilitiamo temporaneamente il click sul completamento
                 onCompleteClick: isProcessing ? () {} : () => _handleCompleteMission(context, missionWithTasks),
                 onEditClick: () => _showEditMissionDialog(context, missionWithTasks),
                 onResetClick: () => _showResetMissionDialog(context, missionWithTasks),
@@ -141,7 +141,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
     final missionId = missionWithTasks.mission.id;
     if (missionId == null) return;
 
-    // 🛡️ Anti-Spam: Se la missione è già in elaborazione o completata, blocca il click
+    // Anti-Spam: Se la missione è già in elaborazione o completata, blocca il click
     if (_processingMissionIds.contains(missionId) || missionWithTasks.mission.completed) {
       return;
     }

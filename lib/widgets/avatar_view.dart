@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import '/repository/user_repository.dart';
 import 'frame_basic.dart';
-import 'frame_scifi.dart'; // ✅ Importato il file della cornice Sci-Fi
+import 'frame_scifi.dart'; // Importato il file della cornice Sci-Fi
 
 /// Vista avatar con cosmetici
 class AvatarView extends StatelessWidget {
@@ -87,7 +87,7 @@ class AvatarView extends StatelessWidget {
         return FrameBasic(size: size, child: child);
 
       case FrameType.scifi:
-        return FrameSciFi(size: size, child: child); // ✅ Adesso mostra la cornice sci-fi!
+        return FrameSciFi(size: size, child: child); // Adesso mostra la cornice sci-fi!
 
       case FrameType.none:
       default:

@@ -4,13 +4,13 @@ import 'package:sqflite/sqflite.dart';
 import '../models/subtask.dart';
 
 class SubTaskDao {
-  final Database db;
+  final DatabaseExecutor db;
 
   SubTaskDao(this.db);
 
   // Insert lista di subtask
   Future<void> insertSubTasks(List<SubTask> subTasks) async {
-    final batch = db.batch();
+    final batch = (db as dynamic).batch();
     for (final subTask in subTasks) {
       batch.insert(
         'subtasks',

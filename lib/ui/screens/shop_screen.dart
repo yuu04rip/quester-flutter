@@ -38,6 +38,13 @@ class _ShopScreenState extends State<ShopScreen> {
   void initState() {
     super.initState();
     _loadShopData();
+    widget.userRepository.addListener(_loadShopData);
+  }
+
+  @override
+  void dispose() {
+    widget.userRepository.removeListener(_loadShopData);
+    super.dispose();
   }
 
   /// Carica i dati del negozio, filtra i temi speciali/ricompense possedute e ordina gli oggetti

@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/owned_cosmetic.dart';
 
 class OwnedCosmeticDao {
-  final Database db;
+  final DatabaseExecutor db;
 
   OwnedCosmeticDao(this.db);
 

@@ -13,7 +13,7 @@ class MissionCard extends StatelessWidget {
   final VoidCallback onEditClick;
   final VoidCallback onDeleteClick;
   final VoidCallback? onResetClick;
-  final void Function(SubTask subTask, bool done)? onSubTaskToggled; // 👈 Aggiunto callback per i subtask
+  final void Function(SubTask subTask, bool done)? onSubTaskToggled; // Aggiunto callback per i subtask
 
   const MissionCard({
     super.key,
@@ -210,18 +210,19 @@ class MissionCard extends StatelessWidget {
                         ),
                       ),
 
-                    // Pulsante Modifica
-                    SizedBox(
-                      height: 32,
-                      width: 32,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.edit_outlined, size: 16),
-                        color: theme.colorScheme.onSurfaceVariant,
-                        onPressed: onEditClick,
-                        tooltip: 'Modifica',
+                    // Pulsante Modifica (Visibile solo se la missione NON è completata)
+                    if (!isCompleted)
+                      SizedBox(
+                        height: 32,
+                        width: 32,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          color: theme.colorScheme.onSurfaceVariant,
+                          onPressed: onEditClick,
+                          tooltip: 'Modifica',
+                        ),
                       ),
-                    ),
 
                     // Pulsante Elimina
                     SizedBox(
@@ -258,7 +259,7 @@ class MissionCard extends StatelessWidget {
             height: 18,
             child: Checkbox(
               value: task.done,
-              // 👈 Collegato al callback se passato, altrimenti disabilitato se missione completata
+              // Collegato al callback se passato, altrimenti disabilitato se missione completata
               onChanged: missionWithTasks.mission.completed || onSubTaskToggled == null
                   ? null
                   : (bool? value) {

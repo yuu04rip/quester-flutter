@@ -4,14 +4,14 @@ import 'package:sqflite/sqflite.dart';
 import '../models/user.dart';
 
 class UserDao {
-  final Database db;
+  final DatabaseExecutor db;
 
   UserDao(this.db);
 
   // Insert utente
   Future<int> insertUser(User user) async {
     final map = user.toMap();
-    map.remove('id');  // ✅ Rimuovi id — il DB lo auto-genera!
+    map.remove('id'); // Rimuovi id - il DB lo auto-genera!
 
     return await db.insert(
       'users',
@@ -63,7 +63,7 @@ class UserDao {
     return User.fromMap(result.first);
   }
 
-  // Utente per identità (username o email)
+  // Utente per identita (username o email)
   Future<User?> getUserByIdentity(String identity) async {
     final result = await db.query(
       'users',

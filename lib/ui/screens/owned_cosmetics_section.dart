@@ -215,7 +215,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
           if (isTheme) {
             final AppTheme targetTheme;
             if (_isThemeActive(itemId)) {
-              // 🛡️ CORRETTO: Se è già attivo, lo spegniamo tornando al TEMA BASE
+              // CORRETTO: Se e gia attivo, lo spegniamo tornando al TEMA BASE
               targetTheme = AppTheme.basic;
             } else {
               targetTheme = _getTargetTheme(itemId);

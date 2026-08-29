@@ -1,5 +1,9 @@
 // lib/domain/service/mission_service.dart
 
+import '../../data/dao/mission_dao.dart';
+import '../../data/dao/user_dao.dart';
+import '../../data/dao/subtask_dao.dart';
+import '../../data/dao/owned_cosmetic_dao.dart';
 import '../../data/models/mission.dart';
 import '../../data/models/mission_type.dart';
 import '../../data/models/subtask.dart';
@@ -124,26 +128,65 @@ class MissionService {
     await missionRepository.updateMissionWithSubTasks(updatedMission, subtaskList);
   }
 
-  /// Completamento missione
+  /// Completamento missione con limitazione e notifica di successo integrata
   Future<void> completeMission(Mission mission, int userId) async {
     final missionId = mission.id;
     if (missionId == null) return;
 
-    if (!mission.completed) {
-      final user = await userRepository.getUserById(userId);
-      if (user == null) throw Exception('Utente non trovato');
+    if (mission.completed) {
+      throw Exception('Questa missione è già stata completata!');
+    }
 
-      final missionType = MissionType.fromDbValue(mission.type);
-      final finalXp = missionType.xpReward;
-      final finalCoins = missionType.coinReward;
-
-      await missionRepository.markMissionCompleted(missionId);
-      await userRepository.addXp(userId, finalXp);
-      await userRepository.addCoins(userId, finalCoins);
-
-      if (reminderService != null) {
-        await reminderService!.cancelMissionReminder(missionId);
+    // Verifica velocità di completamento
+    final lastCompletion = await missionRepository.getLastCompletionTime(userId);
+    if (lastCompletion != null) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - lastCompletion < minTimeBetweenCompletions) {
+        throw Exception('Stai completando le missioni troppo velocemente! Attendi un momento.');
       }
+    }
+
+    final missionType = MissionType.fromDbValue(mission.type);
+    final finalXp = missionType.xpReward;
+    final finalCoins = missionType.coinReward;
+
+    // Esecuzione in transazione per garantire atomicità
+    final db = (missionRepository.missionDao.db as dynamic);
+    await db.transaction((txn) async {
+      final txnMissionDao = MissionDao(txn);
+      final txnUserDao = UserDao(txn);
+      final txnSubTaskDao = SubTaskDao(txn);
+      final txnOwnedCosmeticDao = OwnedCosmeticDao(txn);
+
+      final txnMissionRepo = MissionRepository(
+        missionDao: txnMissionDao,
+        subTaskDao: txnSubTaskDao,
+      );
+      final txnUserRepo = UserRepository(
+        userDao: txnUserDao,
+        ownedCosmeticDao: txnOwnedCosmeticDao,
+      );
+
+      await txnMissionRepo.markMissionCompleted(missionId);
+      await txnUserRepo.addXp(userId, finalXp);
+      await txnUserRepo.addCoins(userId, finalCoins);
+    });
+
+    // Notifichiamo i cambiamenti al repository globale per aggiornare la UI
+    userRepository.refresh();
+
+    final updatedUser = await userRepository.getUserById(userId);
+    final playerLevel = updatedUser?.livello ?? 1;
+
+    if (reminderService != null) {
+      await reminderService!.cancelMissionReminder(missionId);
+      await reminderService!.sendMissionCompletionNotification(
+        missionId: missionId,
+        missionTitle: mission.title,
+        xpGained: finalXp,
+        coinsGained: finalCoins,
+        playerLevel: playerLevel,
+      );
     }
   }
 
@@ -164,7 +207,7 @@ class MissionService {
 
     if (allDone) {
       final currentMission = await missionRepository.getMissionById(subTask.missionId);
-      if (currentMission != null) {
+      if (currentMission != null && !currentMission.completed) {
         await completeMission(currentMission, userId);
       }
     }
@@ -208,7 +251,7 @@ class MissionService {
       }
     }
 
-    if (mission.completed && !mission.xpAwarded) {
+    if (mission.completed) {
       await missionRepository.updateMission(mission.copyWith(completed: false));
     }
   }

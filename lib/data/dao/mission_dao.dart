@@ -6,7 +6,7 @@ import '../models/subtask.dart';
 import '../models/mission_with_subtasks.dart';
 
 class MissionDao {
-  final Database db;
+  final DatabaseExecutor db;
 
   MissionDao(this.db);
 

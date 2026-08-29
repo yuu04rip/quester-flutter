@@ -1,9 +1,12 @@
+// test/user_repository_test.dart
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:quester_flutter/data/dao/user_dao.dart';
-import 'package:quester_flutter/data/models/user.dart';
-import 'package:quester_flutter/repository/user_repository.dart';
+import 'package:Quester/data/dao/user_dao.dart';
+import 'package:Quester/data/dao/owned_cosmetic_dao.dart';
+import 'package:Quester/data/models/user.dart';
+import 'package:Quester/repository/user_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -11,7 +14,7 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
-  Future<UserRepository> _createRepository() async {
+  Future<UserRepository> createRepository() async {
     final db = await openDatabase(
       inMemoryDatabasePath,
       version: 1,
@@ -30,14 +33,24 @@ void main() {
             equippedFrame TEXT NOT NULL DEFAULT 'NONE'
           )
         ''');
+        await database.execute('''
+          CREATE TABLE owned_cosmetics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            userId INTEGER NOT NULL,
+            itemId TEXT NOT NULL
+          )
+        ''');
       },
     );
 
-    return UserRepository(userDao: UserDao(db));
+    return UserRepository(
+      userDao: UserDao(db),
+      ownedCosmeticDao: OwnedCosmeticDao(db),
+    );
   }
 
   test('XP stops increasing after reaching max level', () async {
-    final userRepository = await _createRepository();
+    final userRepository = await createRepository();
     final userDao = userRepository.userDao;
     final maxXp = userRepository.getTotalXpRequiredForLevel(
       UserRepository.maxLevel,
@@ -62,7 +75,7 @@ void main() {
   });
 
   test('XP cap is calculated correctly for the final level', () async {
-    final repo = await _createRepository();
+    final repo = await createRepository();
     final maxXp = repo.getTotalXpRequiredForLevel(UserRepository.maxLevel);
 
     expect(repo.calculateLevelFromXp(maxXp), equals(UserRepository.maxLevel));

@@ -72,12 +72,6 @@ Future<void> main() async {
     authRepository: authRepository,
     userRepository: userRepository,
   );
-  final missionService = MissionService(
-    missionRepository: missionRepository,
-    userRepository: userRepository,
-    currencyService: currencyService,
-    sessionManager: sessionManager,
-  );
   final shopService = ShopService(
     userRepository: userRepository,
     shopDao: shopDao,
@@ -85,6 +79,14 @@ Future<void> main() async {
     sessionManager: sessionManager,
   );
   final reminderService = ReminderService(notificationsPlugin);
+
+  final missionService = MissionService(
+    missionRepository: missionRepository,
+    userRepository: userRepository,
+    currencyService: currencyService,
+    sessionManager: sessionManager,
+    reminderService: reminderService,
+  );
 
   // Inizializza lo shop con gli oggetti predefiniti solo se vuoto
   await _initShop(shopDao);
@@ -109,7 +111,7 @@ Future<void> main() async {
 /// Inizializza le notifiche locali e richiede i permessi di sistema (Android 13+ / iOS)
 Future<void> _initNotifications() async {
   const AndroidInitializationSettings androidSettings =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
+  AndroidInitializationSettings('@mipmap/launcher_icon');
 
   const DarwinInitializationSettings iosSettings =
   DarwinInitializationSettings();
@@ -121,7 +123,7 @@ Future<void> _initNotifications() async {
 
   await notificationsPlugin.initialize(initSettings);
 
-  // 🛡️ Richiesta esplicita dei permessi di notifica (fondamentale per Android 13+)
+  // Richiesta esplicita dei permessi di notifica (fondamentale per Android 13+)
   if (Platform.isAndroid) {
     final androidImplementation =
     notificationsPlugin.resolvePlatformSpecificImplementation<
@@ -149,7 +151,8 @@ Future<void> _initShop(dynamic shopDao) async {
   );
   await shopDao.db.delete(
     'owned_cosmetics',
-    where: "itemId = ? AND EXISTS (SELECT 1 FROM owned_cosmetics o2 WHERE o2.userId = owned_cosmetics.userId AND o2.itemId = ?)",
+    where:
+    "itemId = ? AND EXISTS (SELECT 1 FROM owned_cosmetics o2 WHERE o2.userId = owned_cosmetics.userId AND o2.itemId = ?)",
     whereArgs: ['elmo_cavaliere', 'hat_cavaliere'],
   );
   await shopDao.db.update(
@@ -315,6 +318,7 @@ class QuesterApp extends StatefulWidget {
 class _QuesterAppState extends State<QuesterApp> {
   bool _isLoggedIn = false;
   bool _isLoading = true;
+  int _currentIndex = 1; // Mantiene lo stato del tab attivo anche al cambio tema
 
   @override
   void initState() {
@@ -367,6 +371,10 @@ class _QuesterAppState extends State<QuesterApp> {
               sessionManager: widget.sessionManager,
               onLogout: () {
                 setState(() => _isLoggedIn = false);
+              },
+              currentIndex: _currentIndex, // Passiamo l'indice persistente
+              onTabChanged: (index) {
+                setState(() => _currentIndex = index); // Aggiorna l'indice quando navighi
               },
             )
                 : AuthScreen(

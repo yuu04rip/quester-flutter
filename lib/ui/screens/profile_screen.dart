@@ -10,7 +10,7 @@ import 'profile_components.dart';
 import 'profile_constants.dart';
 import '/widgets/avatar_view.dart';
 import '/widgets/magic_burst_button.dart';
-import '/widgets/regal_crown_badge.dart'; // 👑 Import del badge corona regale
+import '/widgets/regal_crown_badge.dart'; // Import del badge corona regale
 import 'owned_cosmetics_section.dart';
 import '/ui/theme/app_theme.dart';
 import '/widgets/arcade_mini_game_widget.dart';
@@ -57,6 +57,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+    widget.userRepository.addListener(_loadUserData);
+  }
+
+  @override
+  void dispose() {
+    widget.userRepository.removeListener(_loadUserData);
+    super.dispose();
   }
 
   /// Restituisce il titolo arcade in base al livello (Max Level 50)
@@ -120,9 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // ============================================================
         // CONTENUTO PRINCIPALE DEL PROFILO
-        // ============================================================
         SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -160,9 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
 
-        // ============================================================
-        // 🕹️ ARCADE MINI GAME
-        // ============================================================
+        // ARCADE MINI GAME
         if (isArcade)
           const Positioned.fill(
             child: IgnorePointer(
@@ -183,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final isArcade = ThemeManager.currentTheme == AppTheme.arcade;
 
-    // 💡 Blocco rigoroso del livello a 50 per evitare visualizzazioni come "Livello 51"
+    // Blocco rigoroso del livello a 50 per evitare visualizzazioni come "Livello 51"
     final displayLevel = user.livello > 50 ? 50 : user.livello;
     final isMaxLevel = user.livello >= 50;
 
@@ -222,9 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              // ========================================================
               // HEADER ARCADE (Titolo dinamico basato sul livello)
-              // ========================================================
               if (isArcade) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -250,9 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // ========================================================
               // AVATAR CON CORONA REGALE IN CIMA
-              // ========================================================
               Stack(
                 alignment: Alignment.topCenter,
                 clipBehavior: Clip.none,
@@ -281,9 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 12),
 
-              // ========================================================
               // USERNAME
-              // ========================================================
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -313,9 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 8),
 
-              // ========================================================
               // LIVELLO / STAGE
-              // ========================================================
               Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: 16,
@@ -358,9 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 16),
 
-              // ========================================================
               // XP PROGRESS
-              // ========================================================
               FantasyXpProgress(
                 xpTotale: user.xpTotale,
                 livello: displayLevel,
@@ -394,9 +387,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 16),
 
-              // ========================================================
               // STATISTICHE
-              // ========================================================
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
