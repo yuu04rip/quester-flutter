@@ -189,14 +189,14 @@ Future<void> _initShop(dynamic shopDao) async {
       name: 'Cappello del Mago',
       price: 100,
       description: 'Cappello a punta con stelle magiche',
-      iconName: 'shopping_cart',
+      iconName: 'ic_char_wizard',
     ),
     ShopItem(
       itemId: 'staff_mago',
       name: 'Bastone del Mago',
       price: 100,
       description: 'Bastone con gemma magica incantata',
-      iconName: 'shopping_cart',
+      iconName: 'ic_char_weapon_staff',
     ),
     ShopItem(
       itemId: 'gun_spaziale',
@@ -210,14 +210,14 @@ Future<void> _initShop(dynamic shopDao) async {
       name: 'Spada del Cavaliere',
       price: 100,
       description: 'Spada luminosa forgiata nell\'acciaio',
-      iconName: 'shopping_cart',
+      iconName: 'ic_char_weapon_blade',
     ),
     ShopItem(
       itemId: 'hat_cavaliere',
       name: 'Elmo del Cavaliere',
       price: 100,
       description: 'Elmo con visiera protettiva',
-      iconName: 'shopping_cart',
+      iconName: 'ic_char_helm',
     ),
     ShopItem(
       itemId: 'visor_futuristico',

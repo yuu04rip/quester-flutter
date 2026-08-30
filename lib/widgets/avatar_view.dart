@@ -24,7 +24,6 @@ class AvatarView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Contenuto interno dell'avatar (il personaggio con vestiti, armi, ecc.)
     final Widget characterContent = ClipOval(
       child: Transform.scale(
         scale: scale,
@@ -32,38 +31,35 @@ class AvatarView extends StatelessWidget {
           offset: Offset(0, verticalOffset),
           child: Stack(
             children: [
-              // Arma
+              // 1. Arma equipaggiata
               Positioned.fill(
                 child: Image.asset(
-                  cosmetics.weapon == WeaponType.gun
-                      ? 'assets/images/char_weapon_laser.png'
-                      : 'assets/images/char_weapon_wood.png',
+                  _getWeaponAsset(cosmetics.weapon),
                   fit: BoxFit.contain,
                 ),
               ),
-              // Corpo
+              // 2. Corpo
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/char_body.png',
                   fit: BoxFit.contain,
                 ),
               ),
-              // Vestito
+              // 3. Vestito
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/char_outfit.png',
                   fit: BoxFit.contain,
                 ),
               ),
-              // Cappello
-              Positioned.fill(
-                child: Image.asset(
-                  cosmetics.hat == HatType.scifi
-                      ? 'assets/images/char_visor.png'
-                      : 'assets/images/char_hat.png',
-                  fit: BoxFit.contain,
+              // 4. Cappello / Elmo equipaggiato
+              if (_getHatAsset(cosmetics.hat) != null)
+                Positioned.fill(
+                  child: Image.asset(
+                    _getHatAsset(cosmetics.hat)!,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -74,6 +70,36 @@ class AvatarView extends StatelessWidget {
       onTap: onClick,
       child: _buildFrameWrapper(characterContent),
     );
+  }
+
+  /// Restituisce il percorso dell'immagine dell'arma in base al tipo
+  String _getWeaponAsset(WeaponType weapon) {
+    switch (weapon) {
+      case WeaponType.gun:
+        return 'assets/images/char_weapon_laser.png';
+      case WeaponType.staff:
+        return 'assets/images/char_staff_mago.png';
+      case WeaponType.sword:
+        return 'assets/images/char_sword_cavaliere.png';
+      case WeaponType.none:
+      default:
+        return 'assets/images/char_weapon_wood.png';
+    }
+  }
+
+  /// Restituisce il percorso dell'immagine del cappello in base al tipo
+  String? _getHatAsset(HatType hat) {
+    switch (hat) {
+      case HatType.scifi:
+        return 'assets/images/char_visor.png';
+      case HatType.mago:
+        return 'assets/images/char_hat_mago.png';
+      case HatType.cavaliere:
+        return 'assets/images/char_hat_cavaliere.png';
+      case HatType.none:
+      default:
+        return 'assets/images/char_hat.png';
+    }
   }
 
   /// Seleziona la cornice corretta in base al tipo equipaggiato

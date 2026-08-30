@@ -57,6 +57,23 @@ const Color FantasyLightSuccess = Color(0xFF388E3C);
 const Color FantasyLightWarning = Color(0xFFF9A825);
 const Color FantasyLightInfo = Color(0xFF1976D2);
 
+
+// ============================================================
+// COLORI BACHECA FANTASY (LEGNO E PERGAMENA)
+// ============================================================
+
+const Color FantasyBoardWoodDark = Color(0xFF2C1A0E);     // Legno scuro (Sfondo)
+const Color FantasyBoardWood = Color(0xFF4A2E1B);         // Legno medio (Superfici)
+const Color FantasyBoardWoodLight = Color(0xFF6B4226);    // Legno chiaro (Bordi)
+
+const Color FantasyBoardParchment = Color(0xFFE8D5A0);    // Pergamena (Testo primario)
+const Color FantasyBoardParchmentDark = Color(0xFFC0A060); // Pergamena scura (Testo secondario)
+
+const Color FantasyBoardRedWax = Color(0xFF9E1B1B);       // Cera lacca rossa (Error/Accenti)
+const Color FantasyBoardInk = Color(0xFF1A1A1A);          // Inchiostro nero
+const Color FantasyBoardGoldLeaf = Color(0xFFD4AF37);     // Foglia d'oro (Accenti principali)
+
+
 // ============================================================
 //  COLORI TEMA ARCADE (PIXEL/RETRÒ)
 // ============================================================
