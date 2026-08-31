@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-/// Cornice sci-fi futuristica e avanzata (Stile HUD / Cyberpunk)
+/// Cornice sci-fi futuristica e avanzata (Stile HUD / Cyberpunk) disegnata interamente via codice
 class FrameSciFi extends StatelessWidget {
   final Widget child;
   final double size;

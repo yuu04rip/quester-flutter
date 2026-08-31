@@ -297,8 +297,8 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _buildShopItemIcon(BuildContext context, ShopItem item, bool isOwned) {
     final theme = Theme.of(context);
 
-    // Se l'iconName è un asset personalizzato registrato nel main
-    if (item.iconName.startsWith('ic_') || item.iconName.contains('/')) {
+    // Se l'iconName è un asset personalizzato registrato nel main (escludendo esplicitamente le cornici che si disegnano a codice)
+    if ((item.iconName.startsWith('ic_') || item.iconName.contains('/')) && !item.itemId.startsWith('frame_')) {
       return Image.asset(
         'assets/images/${item.iconName}.png',
         width: 36,

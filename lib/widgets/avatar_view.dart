@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import '/repository/user_repository.dart';
 import 'frame_basic.dart';
-import 'frame_scifi.dart'; // Importato il file della cornice Sci-Fi
+import 'frame_scifi.dart';
+import 'frame_mago.dart';       // Importato il nuovo frame del Mago
+import 'frame_cavaliere.dart';  // Importato il nuovo frame del Cavaliere
 
 /// Vista avatar con cosmetici
 class AvatarView extends StatelessWidget {
@@ -78,9 +80,9 @@ class AvatarView extends StatelessWidget {
       case WeaponType.gun:
         return 'assets/images/char_weapon_laser.png';
       case WeaponType.staff:
-        return 'assets/images/char_staff_mago.png';
+        return 'assets/images/char_weapon_staff.png';
       case WeaponType.sword:
-        return 'assets/images/char_sword_cavaliere.png';
+        return 'assets/images/char_weapon_blade.png';
       case WeaponType.none:
       default:
         return 'assets/images/char_weapon_wood.png';
@@ -93,9 +95,9 @@ class AvatarView extends StatelessWidget {
       case HatType.scifi:
         return 'assets/images/char_visor.png';
       case HatType.mago:
-        return 'assets/images/char_hat_mago.png';
+        return 'assets/images/char_wizard.png';
       case HatType.cavaliere:
-        return 'assets/images/char_hat_cavaliere.png';
+        return 'assets/images/char_helm.png';
       case HatType.none:
       default:
         return 'assets/images/char_hat.png';
@@ -106,14 +108,16 @@ class AvatarView extends StatelessWidget {
   Widget _buildFrameWrapper(Widget child) {
     switch (cosmetics.frame) {
       case FrameType.basic:
-      case FrameType.cavaliere:
         return FrameBasic(size: size, child: child);
+
+      case FrameType.cavaliere:
+        return FrameCavaliere(size: size, child: child); // Ora usa la cornice specifica del Cavaliere!
 
       case FrameType.mago:
-        return FrameBasic(size: size, child: child);
+        return FrameMago(size: size, child: child);       // Ora usa la cornice specifica del Mago!
 
       case FrameType.scifi:
-        return FrameSciFi(size: size, child: child); // Adesso mostra la cornice sci-fi!
+        return FrameSciFi(size: size, child: child);
 
       case FrameType.none:
       default:

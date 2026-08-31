@@ -215,7 +215,6 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
           if (isTheme) {
             final AppTheme targetTheme;
             if (_isThemeActive(itemId)) {
-              // CORRETTO: Se e gia attivo, lo spegniamo tornando al TEMA BASE
               targetTheme = AppTheme.basic;
             } else {
               targetTheme = _getTargetTheme(itemId);
@@ -270,85 +269,66 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     );
   }
 
-  /// Icona dinamica pulita con controllo robusto degli asset
+  /// Icona dinamica che mappa gli asset esattamente come definiti nel main.dart
   Widget _buildCosmeticIcon(BuildContext context, String itemId, bool isSelected) {
     final theme = Theme.of(context);
 
-    // Gestione centralizzata tramite switch sugli ID
-    return switch (itemId) {
-      'theme_arcade' => Image.asset(
-        'assets/images/ic_theme_arcade.png',
+    // Mappatura basata sugli iconName definiti nel main.dart
+    final String? assetName = switch (itemId) {
+      'hat_mago' => 'ic_char_wizard',
+      'staff_mago' => 'ic_char_weapon_staff',
+      'gun_spaziale' => 'ic_gun_spaziale',
+      'sword_cavaliere' => 'ic_char_weapon_blade',
+      'hat_cavaliere' => 'ic_char_helm',
+      'visor_futuristico' => 'ic_visor_futuristico',
+      'theme_arcade' => 'ic_theme_arcade',
+      'theme_fantasy' => 'ic_dragon',
+      'reward_corona' => 'ic_crown',
+      'reward_tema_regale' => 'ic_throne',
+      _ => null,
+    };
+
+    // Se troviamo un asset associato, proviamo a caricarlo con Image.asset
+    if (assetName != null) {
+      return Image.asset(
+        'assets/images/$assetName.png',
         width: 36,
         height: 36,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => Icon(
-          Icons.videogame_asset,
-          size: 34,
-          color: isSelected ? theme.colorScheme.secondary : Colors.cyanAccent,
-        ),
-      ),
-      'theme_fantasy' => Icon(
-        Icons.auto_awesome,
-        size: 34,
-        color: isSelected ? theme.colorScheme.secondary : FantasyGold,
-      ),
-      'reward_tema_regale' => Icon(
-        Icons.workspace_premium,
-        size: 34,
-        color: isSelected ? theme.colorScheme.secondary : RegalGold,
-      ),
+        color: isSelected ? Colors.grey : null,
+        colorBlendMode: isSelected ? BlendMode.saturation : null,
+        errorBuilder: (context, error, stackTrace) => _fallbackIcon(itemId, isSelected, theme),
+      );
+    }
+
+    // Per le cornici o altri elementi non basati su asset image standard
+    return switch (itemId) {
       'frame_mago' => _buildFrameIcon(const Color(0xFF6B4C9A)),
       'frame_cavaliere' => _buildFrameIcon(const Color(0xFFD4AF37)),
       'frame_scifi' => _buildFrameIcon(const Color(0xFF00FF66)),
       'frame_basic' => _buildFrameIcon(const Color(0xFFD4AF37)),
-      'hat_mago' => Icon(
-        Icons.auto_awesome,
-        size: 32,
-        color: isSelected ? theme.colorScheme.secondary : FantasyGold,
-      ),
-      'hat_cavaliere' => Icon(
-        Icons.shield,
-        size: 32,
-        color: isSelected ? theme.colorScheme.secondary : FantasyGold,
-      ),
-      'visor_futuristico' => Image.asset(
-        'assets/images/ic_visor_futuristico.png',
-        width: 36,
-        height: 36,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => Icon(
-          Icons.visibility,
-          size: 32,
-          color: isSelected ? theme.colorScheme.secondary : Colors.blueAccent,
-        ),
-      ),
-      'staff_mago' || 'sword_cavaliere' => Icon(
-        Icons.visibility,
-        size: 32,
-        color: isSelected ? theme.colorScheme.secondary : Colors.blueAccent,
-      ),
-      'gun_spaziale' => Image.asset(
-        'assets/images/ic_gun_spaziale.png',
-        width: 36,
-        height: 36,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => Icon(
-          Icons.flash_on,
-          size: 32,
-          color: isSelected ? theme.colorScheme.secondary : Colors.redAccent,
-        ),
-      ),
-      _ => Icon(
-        Icons.shopping_cart,
-        size: 34,
-        color: isSelected
-            ? theme.colorScheme.secondary
-            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-      ),
+      _ => _fallbackIcon(itemId, isSelected, theme),
     };
   }
 
-  /// Icona cornice
+  /// Fallback grafico nel caso in cui l'asset immagine non venga trovato
+  Widget _fallbackIcon(String itemId, bool isSelected, ThemeData theme) {
+    final color = isSelected ? theme.colorScheme.secondary : theme.colorScheme.onSurface;
+
+    IconData iconData = Icons.auto_awesome;
+    if (itemId.contains('hat')) iconData = Icons.shield;
+    if (itemId.contains('staff') || itemId.contains('sword') || itemId.contains('gun')) iconData = Icons.flash_on;
+    if (itemId.contains('theme')) iconData = Icons.palette;
+    if (itemId.contains('corona')) iconData = Icons.workspace_premium;
+
+    return Icon(
+      iconData,
+      size: 32,
+      color: color,
+    );
+  }
+
+  /// Icona cornice disegnata geometricamente
   Widget _buildFrameIcon(Color color) {
     return Container(
       width: 32,
