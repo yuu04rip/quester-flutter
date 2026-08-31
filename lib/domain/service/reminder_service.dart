@@ -9,9 +9,12 @@ import 'package:timezone/data/latest.dart' as tz_data;
 class ReminderService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin;
 
-  ReminderService(this._notificationsPlugin) {
+  ReminderService(this._notificationsPlugin);
+
+  /// Inizializza i canali di notifica (da chiamare all'avvio)
+  Future<void> init() async {
     tz_data.initializeTimeZones();
-    _createNotificationChannels();
+    await _createNotificationChannels();
   }
 
   Future<void> _createNotificationChannels() async {

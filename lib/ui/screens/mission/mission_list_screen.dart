@@ -44,6 +44,14 @@ class _MissionListScreenState extends State<MissionListScreen> {
   void initState() {
     super.initState();
     _loadData();
+    // Ascolta i cambiamenti dell'utente (XP, monete, ecc.) per aggiornare l'header o lo stato
+    widget.userRepository.addListener(_loadData);
+  }
+
+  @override
+  void dispose() {
+    widget.userRepository.removeListener(_loadData);
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -119,15 +127,24 @@ class _MissionListScreenState extends State<MissionListScreen> {
 
               return MissionCard(
                 missionWithTasks: missionWithTasks,
-                onClick: () => _showMissionDetail(context, missionWithTasks),
+                onClick: () => _showMissionDetail(missionWithTasks),
                 // Se è in elaborazione, disabilitiamo temporaneamente il click sul completamento
-                onCompleteClick: isProcessing ? () {} : () => _handleCompleteMission(context, missionWithTasks),
+                onCompleteClick: isProcessing ? () {} : () => _handleCompleteMission(missionWithTasks),
                 onEditClick: () => _showEditMissionDialog(context, missionWithTasks),
                 onResetClick: () => _showResetMissionDialog(context, missionWithTasks),
                 onDeleteClick: () => _handleDeleteMission(context, missionWithTasks),
                 onSubTaskToggled: (subTask, done) async {
-                  await widget.missionService.toggleSubTask(subTask, done);
-                  _loadData();
+                  try {
+                    await widget.missionService.toggleSubTask(subTask, done);
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+                      );
+                    }
+                  } finally {
+                    _loadData();
+                  }
                 },
               );
             },
@@ -137,7 +154,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  Future<void> _handleCompleteMission(BuildContext context, MissionWithSubTasks missionWithTasks) async {
+  Future<void> _handleCompleteMission(MissionWithSubTasks missionWithTasks) async {
     final missionId = missionWithTasks.mission.id;
     if (missionId == null) return;
 
@@ -158,13 +175,19 @@ class _MissionListScreenState extends State<MissionListScreen> {
       await widget.missionService.completeMission(missionWithTasks.mission, userId);
       // Piccolo ritardo di sicurezza visivo per evitare spam immediato
       await Future.delayed(const Duration(milliseconds: 400));
-      await _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
     } finally {
-      // Rimuove il blocco alla fine
+      // Rimuove il blocco e ricarica i dati in ogni caso per coerenza UI
       if (mounted) {
         setState(() {
           _processingMissionIds.remove(missionId);
         });
+        _loadData();
       }
     }
   }
@@ -287,7 +310,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
     );
   }
 
-  void _showMissionDetail(BuildContext context, MissionWithSubTasks missionWithTasks) {
+  void _showMissionDetail(MissionWithSubTasks missionWithTasks) {
     showDialog(
       context: context,
       builder: (context) => MissionDetailDialog(

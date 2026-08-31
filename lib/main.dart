@@ -79,6 +79,7 @@ Future<void> main() async {
     sessionManager: sessionManager,
   );
   final reminderService = ReminderService(notificationsPlugin);
+  await reminderService.init();
 
   final missionService = MissionService(
     missionRepository: missionRepository,

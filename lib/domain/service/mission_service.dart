@@ -69,7 +69,16 @@ class MissionService {
       verificationLevel: validXp > 200 ? 'MANUAL' : 'AUTO',
     );
 
-    await missionRepository.createMission(mission, cleanSubtasks);
+    final missionId = await missionRepository.createMission(mission, cleanSubtasks);
+
+    // Programma un promemoria predefinito tra 10 minuti se non c'è una data di scadenza
+    if (reminderService != null) {
+      await reminderService!.scheduleMissionReminder(
+        missionId: missionId,
+        missionTitle: title.trim(),
+        delayMinutes: 10,
+      );
+    }
   }
 
   /// Aggiorna missione dal form
@@ -150,9 +159,11 @@ class MissionService {
     final finalXp = missionType.xpReward;
     final finalCoins = missionType.coinReward;
 
+    // Recupera l'istanza del database per la transazione
+    final appDb = missionRepository.missionDao.db;
+    
     // Esecuzione in transazione per garantire atomicità
-    final db = (missionRepository.missionDao.db as dynamic);
-    await db.transaction((txn) async {
+    await (appDb as dynamic).transaction((txn) async {
       final txnMissionDao = MissionDao(txn);
       final txnUserDao = UserDao(txn);
       final txnSubTaskDao = SubTaskDao(txn);
