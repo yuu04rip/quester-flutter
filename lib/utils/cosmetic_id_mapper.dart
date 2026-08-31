@@ -19,8 +19,6 @@ class CosmeticIdMapper {
         return 'hat_cavaliere'; // Aggiunto supporto elmo cavaliere
       case HatType.scifi:
         return 'visor_futuristico';
-      default:
-        return null;
     }
   }
 
@@ -34,9 +32,8 @@ class CosmeticIdMapper {
         return HatType.cavaliere; // Aggiunto supporto elmo cavaliere
       case 'visor_futuristico':
         return HatType.scifi;
-      default:
-        return HatType.none;
     }
+    return HatType.none;
   }
 
   static HatType parseHatType(String? value) {
@@ -65,8 +62,6 @@ class CosmeticIdMapper {
         return 'sword_cavaliere';
       case WeaponType.gun:
         return 'gun_spaziale';
-      default:
-        return null;
     }
   }
 
@@ -79,9 +74,8 @@ class CosmeticIdMapper {
         return WeaponType.sword;
       case 'gun_spaziale':
         return WeaponType.gun;
-      default:
-        return WeaponType.none;
     }
+    return WeaponType.none;
   }
 
   static WeaponType parseWeaponType(String? value) {
@@ -111,8 +105,6 @@ class CosmeticIdMapper {
         return 'frame_cavaliere';
       case FrameType.scifi:
         return 'frame_scifi';
-      default:
-        return null;
     }
   }
 
@@ -127,9 +119,8 @@ class CosmeticIdMapper {
         return FrameType.cavaliere;
       case 'frame_scifi':
         return FrameType.scifi;
-      default:
-        return FrameType.basic;
     }
+    return FrameType.basic;
   }
 
   static FrameType parseFrameType(String? value) {
@@ -164,15 +155,16 @@ class CosmeticIdMapper {
   }
 
   static String shopIdToTheme(String? shopId) {
-    if (shopId == null || shopId.isEmpty) return 'fantasy';
+    if (shopId == null || shopId.isEmpty) return 'basic';
     switch (shopId) {
       case 'theme_arcade':
         return 'arcade';
       case 'reward_tema_regale':
         return 'regale';
       case 'theme_fantasy':
-      default:
         return 'fantasy';
+      default:
+        return 'basic';
     }
   }
 }

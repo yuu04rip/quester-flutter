@@ -4,29 +4,29 @@
 // 1. RICOMPENSE MISSIONI
 // ============================================================
 
-const int XP_DAILY = 30;
-const int XP_WEEKLY = 120;
-const int XP_SPECIAL = 400;
+const int xpDaily = 30;
+const int xpWeekly = 120;
+const int xpSpecial = 400;
 
-const int COINS_DAILY = 1;
-const int COINS_WEEKLY = 5;
-const int COINS_SPECIAL = 15;
+const int coinsDaily = 1;
+const int coinsWeekly = 5;
+const int coinsSpecial = 15;
 
 // ============================================================
 // 2. COSMETICI E PREZZI
 // ============================================================
 
-const int PRICE_FRAME = 30;
-const int PRICE_COSMETIC = 100;
-const int PRICE_THEME = 500;
+const int priceFrame = 30;
+const int priceCosmetic = 100;
+const int priceTheme = 500;
 
-const List<String> FRAME_NAMES = [
+const List<String> frameNames = [
   'Cornice del Mago',
   'Cornice del Cavaliere',
   'Cornice Sci-Fi',
 ];
 
-const List<String> COSMETIC_NAMES = [
+const List<String> cosmeticNames = [
   'Cappello del Mago',
   'Bastone del Mago',
   'Pistola Spaziale',
@@ -35,7 +35,7 @@ const List<String> COSMETIC_NAMES = [
   'Visore Futuristico',
 ];
 
-const List<String> THEME_NAMES = [
+const List<String> themeNames = [
   'Arcade',
   'Bacheca Fantasy',
 ];

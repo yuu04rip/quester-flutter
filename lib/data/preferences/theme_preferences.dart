@@ -7,23 +7,23 @@ import '../../ui/theme/app_theme.dart';  // Import da app_theme.dart
 /// Equivalente a ThemePreferences in Kotlin.
 class ThemePreferences {
   // Chiave per il salvataggio del tema
-  static const String THEME_KEY = 'selected_theme';
+  static const String themeKey = 'selected_theme';
 
   /// Salva il tema nelle SharedPreferences
   Future<void> saveTheme(AppTheme theme) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(THEME_KEY, theme.name);
+    await prefs.setString(themeKey, theme.name);
   }
 
-  /// Legge il tema salvato (con fallback a FANTASY)
+  /// Legge il tema salvato (con fallback a BASIC)
   Future<AppTheme> getTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final themeName = prefs.getString(THEME_KEY) ?? AppTheme.fantasy.name;
+    final themeName = prefs.getString(themeKey) ?? AppTheme.basic.name;
 
     try {
       return AppTheme.fromString(themeName);
     } catch (_) {
-      return AppTheme.fantasy;
+      return AppTheme.basic;
     }
   }
 }

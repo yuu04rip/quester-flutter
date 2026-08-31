@@ -301,8 +301,9 @@ class UserRepository extends ChangeNotifier {
 
   /// Parser per Hat
   HatType _parseHat(String? value) {
-    if (value == null || value.isEmpty || value.contains('NONE'))
+    if (value == null || value.isEmpty || value.contains('NONE')) {
       return HatType.none;
+    }
     return HatType.values.firstWhere(
           (e) => e.name == value.toLowerCase(),
       orElse: () => HatType.none,
@@ -311,8 +312,9 @@ class UserRepository extends ChangeNotifier {
 
   /// Parser per Weapon
   WeaponType _parseWeapon(String? value) {
-    if (value == null || value.isEmpty || value.contains('NONE'))
+    if (value == null || value.isEmpty || value.contains('NONE')) {
       return WeaponType.none;
+    }
     return WeaponType.values.firstWhere(
           (e) => e.name == value.toLowerCase(),
       orElse: () => WeaponType.none,

@@ -61,21 +61,11 @@ class _ShopScreenState extends State<ShopScreen> {
 
     final ownedIds = owned.map((o) => o.itemId).toSet().cast<String>();
 
-    // Filtriamo via gli oggetti speciali o gratuiti se l'utente li possiede già
-    final filteredItems = items.where((item) {
-      final isOwned = ownedIds.contains(item.itemId);
+    // Non filtriamo più gli oggetti posseduti: rimangono visibili nello shop 
+    // ma con lo stato "Posseduto" (gestito nella UI).
+    final filteredItems = items.toList();
 
-      if (isOwned &&
-          (item.price == 0 ||
-              item.itemId.startsWith('reward_') ||
-              item.itemId == 'theme_arcade' ||
-              item.itemId == 'reward_tema_regale')) {
-        return false;
-      }
-      return true;
-    }).toList();
-
-    // Ordina gli oggetti rimanenti: prima quelli non posseduti, poi quelli posseduti in fondo
+    // Ordina gli oggetti: prima quelli non posseduti, poi quelli posseduti in fondo
     filteredItems.sort((a, b) {
       final aOwned = ownedIds.contains(a.itemId);
       final bOwned = ownedIds.contains(b.itemId);
@@ -175,6 +165,7 @@ class _ShopScreenState extends State<ShopScreen> {
     }
 
     return GridView.builder(
+      key: const ValueKey('shop_grid'), // Chiave per la griglia
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -196,6 +187,7 @@ class _ShopScreenState extends State<ShopScreen> {
     final theme = Theme.of(context);
 
     return Card(
+      key: ValueKey('shop_item_${item.itemId}'), // Chiave univoca per ogni card
       elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

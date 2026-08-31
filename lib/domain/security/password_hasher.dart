@@ -5,18 +5,18 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 class PasswordHasher {
-  static const int ITERATIONS = 120000;
-  static const int KEY_LENGTH = 32; // 256 bit = 32 byte
+  static const int iterations = 120000;
+  static const int keyLength = 32; // 256 bit = 32 byte
 
   /// Genera l'hash di una password con salt casuale
   static String hash(String password) {
     final salt = _generateSalt();
-    final hash = _pbkdf2(password, salt, ITERATIONS, KEY_LENGTH);
+    final hash = _pbkdf2(password, salt, iterations, keyLength);
 
     final saltB64 = base64Encode(salt);
     final hashB64 = base64Encode(hash);
 
-    return '$ITERATIONS:$saltB64:$hashB64';
+    return '$iterations:$saltB64:$hashB64';
   }
 
   /// Verifica se una password corrisponde all'hash salvato

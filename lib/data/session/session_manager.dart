@@ -7,34 +7,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SessionManager {
 
   // Chiavi per il salvataggio della sessione
-  static const String LOGGED_USER_ID = 'logged_user_id';
-  static const String IS_LOGGED_IN = 'is_logged_in';
+  static const String loggedUserIdKey = 'logged_user_id';
+  static const String isLoggedInKey = 'is_logged_in';
 
   /// Verifica se l'utente è loggato
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(IS_LOGGED_IN) ?? false;
+    return prefs.getBool(isLoggedInKey) ?? false;
   }
 
   /// Ottiene l'ID dell'utente loggato
   Future<int?> loggedUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(LOGGED_USER_ID);
+    return prefs.getInt(loggedUserIdKey);
   }
 
   /// Crea una nuova sessione
   Future<void> createSession(int userId) async {
     final prefs = await SharedPreferences.getInstance();
     // Imposta direttamente i dati di sessione senza cancellare altre preferenze (es. temi)
-    await prefs.setInt(LOGGED_USER_ID, userId);
-    await prefs.setBool(IS_LOGGED_IN, true);
+    await prefs.setInt(loggedUserIdKey, userId);
+    await prefs.setBool(isLoggedInKey, true);
   }
 
   /// Cancella la sessione corrente
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     // Rimuove solo le chiavi della sessione, preservando il resto delle preferenze
-    await prefs.remove(LOGGED_USER_ID);
-    await prefs.remove(IS_LOGGED_IN);
+    await prefs.remove(loggedUserIdKey);
+    await prefs.remove(isLoggedInKey);
   }
 }

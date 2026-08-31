@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '/data/models/owned_cosmetic.dart';
 import '/data/preferences/theme_preferences.dart';
 import '../theme/app_theme.dart';
-import '../theme/colors.dart';
 
 /// Sezione cosmetici posseduti
 class OwnedCosmeticsSection extends StatefulWidget {
@@ -197,6 +196,7 @@ class _OwnedCosmeticsSectionState extends State<OwnedCosmeticsSection> {
     final displayName = isTheme ? _getThemeDisplayName(itemId) : _formatCosmeticName(itemId);
 
     return Card(
+      key: ValueKey('owned_item_$itemId'),
       elevation: isSelected ? 8 : 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),

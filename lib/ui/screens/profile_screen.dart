@@ -7,7 +7,6 @@ import '/repository/user_repository.dart';
 import '/data/session/session_manager.dart';
 import '../theme/colors.dart';
 import 'profile_components.dart';
-import 'profile_constants.dart';
 import '/widgets/avatar_view.dart';
 import '/widgets/magic_burst_button.dart';
 import '/widgets/regal_crown_badge.dart'; // Import del badge corona regale

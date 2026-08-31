@@ -388,7 +388,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
 
     await widget.missionService.deleteMission(deletedMission);
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(

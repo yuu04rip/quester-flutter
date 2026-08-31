@@ -84,7 +84,6 @@ class AvatarView extends StatelessWidget {
       case WeaponType.sword:
         return 'assets/images/char_weapon_blade.png';
       case WeaponType.none:
-      default:
         return 'assets/images/char_weapon_wood.png';
     }
   }
@@ -99,7 +98,6 @@ class AvatarView extends StatelessWidget {
       case HatType.cavaliere:
         return 'assets/images/char_helm.png';
       case HatType.none:
-      default:
         return 'assets/images/char_hat.png';
     }
   }
@@ -120,7 +118,6 @@ class AvatarView extends StatelessWidget {
         return FrameSciFi(size: size, child: child);
 
       case FrameType.none:
-      default:
         return Container(
           width: size,
           height: size,

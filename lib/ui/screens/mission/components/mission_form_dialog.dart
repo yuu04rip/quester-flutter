@@ -95,7 +95,7 @@ class _MissionFormDialogState extends State<MissionFormDialog> {
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<String>(
-                value: _selectedType,
+                initialValue: _selectedType,
                 decoration: const InputDecoration(
                   labelText: 'Tipo di Missione',
                   border: OutlineInputBorder(),
