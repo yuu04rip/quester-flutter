@@ -25,7 +25,7 @@ class MissionDao {
       'missions',
       where: 'userId = ?',
       whereArgs: [userId],
-      orderBy: 'id DESC',
+      orderBy: 'isPinned DESC, id DESC', // <-- Opzionale: mostra prima quelle pinnate
     );
     return result.map((map) => Mission.fromMap(map)).toList();
   }
@@ -79,6 +79,33 @@ class MissionDao {
       where: 'id = ?',
       whereArgs: [missionId],
     );
+  }
+
+  // Conta quante missioni sono attualmente pinnate per l'utente
+  Future<int> countPinnedMissionsForUser(int userId) async {
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM missions WHERE userId = ? AND isPinned = 1',
+      [userId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  // Imposta o rimuove il pin rispettando il limite massimo di 3
+  Future<bool> setMissionPinned(int missionId, int userId, bool pin) async {
+    if (pin) {
+      final currentPinnedCount = await countPinnedMissionsForUser(userId);
+      if (currentPinnedCount >= 3) {
+        return false; // Raggiunto il limite massimo di 3 pin
+      }
+    }
+
+    await db.update(
+      'missions',
+      {'isPinned': pin ? 1 : 0},
+      where: 'id = ? AND userId = ?',
+      whereArgs: [missionId, userId],
+    );
+    return true;
   }
 
   // Conta missioni create oggi

@@ -19,8 +19,8 @@ class ReminderService {
 
   Future<void> _createNotificationChannels() async {
     final androidImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    _notificationsPlugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidImplementation == null) return;
 
@@ -46,7 +46,7 @@ class ReminderService {
     await androidImplementation.createNotificationChannel(securityChannel);
   }
 
-  /// Programma un promemoria differito per una missione
+  /// Programma un promemoria differito per una missione specifica
   Future<void> scheduleMissionReminder({
     required int missionId,
     required String missionTitle,
@@ -67,8 +67,8 @@ class ReminderService {
 
     await _notificationsPlugin.zonedSchedule(
       missionId,
-      'Quester - Promemoria',
-      'Hai una missione da completare: $missionTitle',
+      'Quester - Chiamata alle Armi',
+      'La missione "$missionTitle" attende di essere completata!',
       scheduledDate,
       const NotificationDetails(
         android: androidDetails,
@@ -80,9 +80,65 @@ class ReminderService {
     );
   }
 
-  /// Cancella un promemoria programmato
+  /// Programma un unico promemoria giornaliero riassuntivo (es. ogni giorno alle 20:00)
+  Future<void> scheduleDailySummaryReminder({
+    required int activeMissionsCount,
+  }) async {
+    if (activeMissionsCount <= 0) {
+      await cancelDailySummaryReminder();
+      return;
+    }
+
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      20, // Ore 20:00: il momento ideale in cui si tirano le somme della giornata
+      0,
+    );
+
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      'mission_reminder_channel',
+      'Promemoria Missioni',
+      channelDescription: 'Notifiche per ricordare le missioni in scadenza',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/launcher_icon',
+    );
+
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    // ID fisso 9999 per identificare il promemoria riassuntivo giornaliero
+    await _notificationsPlugin.zonedSchedule(
+      9999,
+      'Rapporto di Guerra, Eroe!',
+      'Hai ancora $activeMissionsCount imprese in sospeso. Apri Quester e conquista la giornata prima che scada il tempo!',
+      scheduledDate,
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+      UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time, // Si ripete ogni giorno alla stessa ora
+    );
+  }
+
+  /// Cancella un promemoria specifico per una missione
   Future<void> cancelMissionReminder(int missionId) async {
     await _notificationsPlugin.cancel(missionId);
+  }
+
+  /// Cancella il promemoria giornaliero riassuntivo
+  Future<void> cancelDailySummaryReminder() async {
+    await _notificationsPlugin.cancel(9999);
   }
 
   /// Invia una notifica immediata di missione completata (ricompense incluse)

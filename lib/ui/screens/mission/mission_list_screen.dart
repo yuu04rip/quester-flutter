@@ -6,11 +6,11 @@ import '/repository/mission_repository.dart';
 import '/repository/user_repository.dart';
 import '/data/session/session_manager.dart';
 import '/domain/service/mission_service.dart';
-import '../mission/components/mission_card.dart';
-import '../mission/components/filter_status.dart';
-import '../mission/components/mission_list_header.dart';
-import '../mission/components/mission_form_dialog.dart';
-import '../mission/components/mission_detail_dialog.dart';
+import 'components/mission_card.dart';
+import 'components/filter_status.dart';
+import 'components/mission_list_header.dart';
+import 'components/mission_form_dialog.dart';
+import 'components/mission_detail_dialog.dart';
 
 class MissionListScreen extends StatefulWidget {
   final MissionService missionService;
@@ -37,14 +37,12 @@ class _MissionListScreenState extends State<MissionListScreen> {
   String _username = 'Eroe';
   bool _isLoading = true;
 
-  // Anti-Spam: Tiene traccia delle missioni in fase di elaborazione/completamento
   final Set<int> _processingMissionIds = {};
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    // Ascolta i cambiamenti dell'utente (XP, monete, ecc.) per aggiornare l'header o lo stato
     widget.userRepository.addListener(_loadData);
   }
 
@@ -57,7 +55,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
   Future<void> _loadData() async {
     final userId = await widget.sessionManager.loggedUserId();
 
-    // Se l'utente non è loggato, interrompiamo il caricamento per evitare il blocco perenne in loading
     if (userId == null) {
       if (!mounted) return;
       setState(() {
@@ -128,11 +125,34 @@ class _MissionListScreenState extends State<MissionListScreen> {
               return MissionCard(
                 missionWithTasks: missionWithTasks,
                 onClick: () => _showMissionDetail(missionWithTasks),
-                // Se è in elaborazione, disabilitiamo temporaneamente il click sul completamento
                 onCompleteClick: isProcessing ? () {} : () => _handleCompleteMission(missionWithTasks),
                 onEditClick: () => _showEditMissionDialog(context, missionWithTasks),
                 onResetClick: () => _showResetMissionDialog(context, missionWithTasks),
                 onDeleteClick: () => _handleDeleteMission(context, missionWithTasks),
+                // <-- Gestione del click sul pin con controllo del limite massimo
+                onPinClick: missionId == null ? null : () async {
+                  final userId = await widget.sessionManager.loggedUserId();
+                  if (userId == null) return;
+
+                  final currentPinState = missionWithTasks.mission.isPinned;
+                  final newPinState = !currentPinState;
+
+                  final success = await widget.missionRepository.setMissionPinned(missionId, userId, newPinState);
+
+                  if (!success && newPinState) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Puoi pinnare al massimo 3 missioni contemporaneamente.'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  } else {
+                    _loadData();
+                  }
+                },
                 onSubTaskToggled: (subTask, done) async {
                   try {
                     await widget.missionService.toggleSubTask(subTask, done);
@@ -158,7 +178,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
     final missionId = missionWithTasks.mission.id;
     if (missionId == null) return;
 
-    // Anti-Spam: Se la missione è già in elaborazione o completata, blocca il click
     if (_processingMissionIds.contains(missionId) || missionWithTasks.mission.completed) {
       return;
     }
@@ -166,14 +185,12 @@ class _MissionListScreenState extends State<MissionListScreen> {
     final userId = await widget.sessionManager.loggedUserId();
     if (userId == null) return;
 
-    // Aggiunge la missione al set delle elaborazioni in corso
     setState(() {
       _processingMissionIds.add(missionId);
     });
 
     try {
       await widget.missionService.completeMission(missionWithTasks.mission, userId);
-      // Piccolo ritardo di sicurezza visivo per evitare spam immediato
       await Future.delayed(const Duration(milliseconds: 400));
     } catch (e) {
       if (mounted) {
@@ -182,7 +199,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
         );
       }
     } finally {
-      // Rimuove il blocco e ricarica i dati in ogni caso per coerenza UI
       if (mounted) {
         setState(() {
           _processingMissionIds.remove(missionId);
@@ -413,7 +429,6 @@ class _MissionListScreenState extends State<MissionListScreen> {
 
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('"${deletedMission.title}" rimossa'),

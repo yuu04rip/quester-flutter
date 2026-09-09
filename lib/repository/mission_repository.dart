@@ -55,6 +55,11 @@ class MissionRepository {
     await missionDao.updateMission(mission);
   }
 
+  /// Imposta o rimuove il pin rispettando il limite massimo di 3
+  Future<bool> setMissionPinned(int missionId, int userId, bool pin) async {
+    return missionDao.setMissionPinned(missionId, userId, pin);
+  }
+
   /// Update missione con sostituzione subtask
   Future<void> updateMissionWithSubTasks(Mission mission, List<SubTask> subtasks) async {
     final missionId = mission.id;

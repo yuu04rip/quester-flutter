@@ -14,7 +14,6 @@ class DatabaseProvider {
   AppDatabase? _appDatabase;
 
   /// Ottiene l'istanza del database.
-  /// Chiamare una volta sola all'avvio dell'app.
   Future<AppDatabase> getDatabase() async {
     if (_appDatabase != null) {
       return _appDatabase!;
@@ -27,7 +26,7 @@ class DatabaseProvider {
       path,
       version: AppDatabase.dbVersion,
       onCreate: _onCreate,
-      // Niente onUpgrade! Il database parte da zero con la versione 1
+      onUpgrade: _onUpgrade, // <-- Aggiunto per gestire i vecchi backup
     );
 
     _appDatabase = AppDatabase(db);
@@ -52,7 +51,7 @@ class DatabaseProvider {
       )
     ''');
 
-    // Tabella missions
+    // Tabella missions (con isPinned aggiunto)
     await db.execute('''
       CREATE TABLE missions (
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -68,6 +67,7 @@ class DatabaseProvider {
         createdAt INTEGER NOT NULL,
         completedAt INTEGER,
         verificationLevel TEXT NOT NULL DEFAULT 'AUTO',
+        isPinned INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
@@ -121,5 +121,12 @@ class DatabaseProvider {
     await db.execute('''
       CREATE INDEX idx_users_email ON users(email)
     ''');
+  }
+
+  /// Migrazione professionale: se l'utente arriva dalla versione 1, aggiunge la colonna senza cancellare i dati
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE missions ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0;');
+    }
   }
 }

@@ -20,6 +20,7 @@ class Mission {
   final int createdAt;
   final int? completedAt;
   final String verificationLevel;
+  final bool isPinned; // <-- Aggiunto campo isPinned
 
   Mission({
     this.id,
@@ -35,12 +36,11 @@ class Mission {
     int? createdAt,
     this.completedAt,
     this.verificationLevel = 'AUTO',
+    this.isPinned = false, // <-- Default a false
   }) : createdAt = createdAt ?? DateTime.now().millisecondsSinceEpoch;
 
   // Conversione da/verso Map per il database
   Map<String, dynamic> toMap() => {
-
-
     if (id != null && id != 0) 'id': id,
     'userId': userId,
     'title': title,
@@ -54,6 +54,7 @@ class Mission {
     'createdAt': createdAt,
     'completedAt': completedAt,
     'verificationLevel': verificationLevel,
+    'isPinned': isPinned ? 1 : 0, // <-- Mappato nel DB come intero
   };
 
   factory Mission.fromMap(Map<String, dynamic> map) => Mission(
@@ -70,6 +71,7 @@ class Mission {
     createdAt: map['createdAt'] ?? 0,
     completedAt: map['completedAt'],
     verificationLevel: map['verificationLevel'] ?? 'AUTO',
+    isPinned: (map['isPinned'] ?? 0) == 1, // <-- Letto dal DB
   );
 
   // Copy per aggiornamenti
@@ -87,6 +89,7 @@ class Mission {
     int? createdAt,
     int? completedAt,
     String? verificationLevel,
+    bool? isPinned, // <-- Aggiunto nel copyWith
   }) {
     return Mission(
       id: id ?? this.id,
@@ -102,6 +105,7 @@ class Mission {
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
       verificationLevel: verificationLevel ?? this.verificationLevel,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 }

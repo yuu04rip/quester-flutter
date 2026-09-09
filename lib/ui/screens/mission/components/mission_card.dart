@@ -13,7 +13,8 @@ class MissionCard extends StatelessWidget {
   final VoidCallback onEditClick;
   final VoidCallback onDeleteClick;
   final VoidCallback? onResetClick;
-  final void Function(SubTask subTask, bool done)? onSubTaskToggled; // Aggiunto callback per i subtask
+  final VoidCallback? onPinClick; // <-- Aggiunto callback per il pin
+  final void Function(SubTask subTask, bool done)? onSubTaskToggled;
 
   const MissionCard({
     super.key,
@@ -23,6 +24,7 @@ class MissionCard extends StatelessWidget {
     required this.onEditClick,
     required this.onDeleteClick,
     this.onResetClick,
+    this.onPinClick, // <-- Aggiunto nel costruttore
     this.onSubTaskToggled,
   });
 
@@ -34,6 +36,7 @@ class MissionCard extends StatelessWidget {
     final progress = missionWithTasks.progress;
     final percentage = (progress * 100).toInt();
     final isCompleted = mission.completed;
+    final isPinned = mission.isPinned; // <-- Stato del pin
     final missionType = MissionType.fromDbValue(mission.type);
 
     return Container(
@@ -56,8 +59,10 @@ class MissionCard extends StatelessWidget {
           side: BorderSide(
             color: isCompleted
                 ? Colors.green.withValues(alpha: 0.6)
+                : isPinned
+                ? accentColor // Evidenzia la card se pinnata
                 : accentColor.withValues(alpha: 0.4),
-            width: isCompleted ? 1.5 : 1,
+            width: isCompleted || isPinned ? 1.5 : 1,
           ),
         ),
         child: InkWell(
@@ -68,7 +73,7 @@ class MissionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: Pulsante Completamento + Titolo + Badge Tipo Missione (perfettamente allineati)
+                // Header: Pulsante Completamento + Titolo + Pulsante Pin + Badge Tipo Missione
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -101,6 +106,22 @@ class MissionCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
+
+                    // Pulsante Pin rapido
+                    if (onPinClick != null)
+                      IconButton(
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(4),
+                        icon: Icon(
+                          isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                          size: 20,
+                          color: isPinned ? accentColor : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        ),
+                        onPressed: onPinClick,
+                        tooltip: isPinned ? 'Rimuovi pin' : 'Pinna missione',
+                      ),
+                    const SizedBox(width: 6),
+
                     // Badge Tipo Missione
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -124,7 +145,7 @@ class MissionCard extends StatelessWidget {
                 if (mission.description.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Padding(
-                    padding: const EdgeInsets.only(left: 36), // Allineato col testo del titolo
+                    padding: const EdgeInsets.only(left: 36),
                     child: Text(
                       mission.description,
                       maxLines: 2,
@@ -210,7 +231,7 @@ class MissionCard extends StatelessWidget {
                         ),
                       ),
 
-                    // Pulsante Modifica (Visibile solo se la missione NON è completata)
+                    // Pulsante Modifica
                     if (!isCompleted)
                       SizedBox(
                         height: 32,
@@ -259,7 +280,6 @@ class MissionCard extends StatelessWidget {
             height: 18,
             child: Checkbox(
               value: task.done,
-              // Collegato al callback se passato, altrimenti disabilitato se missione completata
               onChanged: missionWithTasks.mission.completed || onSubTaskToggled == null
                   ? null
                   : (bool? value) {
