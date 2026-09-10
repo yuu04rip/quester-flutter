@@ -12,6 +12,7 @@ import '/repository/user_repository.dart';
 import '../../data/session/session_manager.dart';
 import 'currency_service.dart';
 import 'reminder_service.dart';
+import 'sync_service.dart';
 
 class MissionService {
   static const int maxSubtasksPerMission = 10;
@@ -22,6 +23,7 @@ class MissionService {
   final CurrencyService currencyService;
   final SessionManager sessionManager;
   final ReminderService? reminderService;
+  final SyncService? syncService;
   final bool isTestMode;
 
   MissionService({
@@ -30,6 +32,7 @@ class MissionService {
     required this.currencyService,
     required this.sessionManager,
     this.reminderService,
+    this.syncService,
     this.isTestMode = false,
   });
 
@@ -58,6 +61,7 @@ class MissionService {
       throw Exception('Massimo $maxSubtasksPerMission subtask per missione');
     }
 
+    final now = DateTime.now().millisecondsSinceEpoch;
     final mission = Mission(
       userId: userId,
       title: title.trim(),
@@ -65,13 +69,18 @@ class MissionService {
       type: missionType.dbValue,
       dueDate: dueDate,
       xpReward: validXp,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
+      createdAt: now,
+      updatedAt: now,
       verificationLevel: validXp > 200 ? 'MANUAL' : 'AUTO',
     );
 
     final missionId = await missionRepository.createMission(mission, cleanSubtasks);
 
-    // Programma un promemoria predefinito tra 10 minuti se non c'è una data di scadenza
+    // Sync mirato della sola nuova missione
+    if (syncService != null) {
+      await syncService!.syncSingleMissionWithSubTasks(missionId, userId);
+    }
+
     if (reminderService != null) {
       await reminderService!.scheduleMissionReminder(
         missionId: missionId,
@@ -115,12 +124,14 @@ class MissionService {
 
     final missionType = MissionType.fromDbValue(newType);
     final validXp = missionType.xpReward;
+    final now = DateTime.now().millisecondsSinceEpoch;
 
     final updatedMission = mission.copyWith(
       title: newTitle.trim(),
       description: newDescription.trim(),
       type: missionType.dbValue,
       xpReward: validXp,
+      updatedAt: now,
     );
 
     final missionId = mission.id;
@@ -135,9 +146,14 @@ class MissionService {
     )).toList();
 
     await missionRepository.updateMissionWithSubTasks(updatedMission, subtaskList);
+
+    // TRIGGER SYNC CLOUD
+    if (syncService != null) {
+      await syncService!.syncSingleMissionWithSubTasks(missionId, userId);
+    }
   }
 
-  /// Completamento missione con limitazione e notifica di successo integrata
+  /// Completamento missione
   Future<void> completeMission(Mission mission, int userId) async {
     final missionId = mission.id;
     if (missionId == null) return;
@@ -146,7 +162,6 @@ class MissionService {
       throw Exception('Questa missione è già stata completata!');
     }
 
-    // Verifica velocità di completamento
     final lastCompletion = await missionRepository.getLastCompletionTime(userId);
     if (lastCompletion != null) {
       final now = DateTime.now().millisecondsSinceEpoch;
@@ -159,10 +174,8 @@ class MissionService {
     final finalXp = missionType.xpReward;
     final finalCoins = missionType.coinReward;
 
-    // Recupera l'istanza del database per la transazione
     final appDb = missionRepository.missionDao.db;
-    
-    // Esecuzione in transazione per garantire atomicità
+
     await (appDb as dynamic).transaction((txn) async {
       final txnMissionDao = MissionDao(txn);
       final txnUserDao = UserDao(txn);
@@ -183,8 +196,16 @@ class MissionService {
       await txnUserRepo.addCoins(userId, finalCoins);
     });
 
-    // Notifichiamo i cambiamenti al repository globale per aggiornare la UI
     userRepository.refresh();
+
+    // TRIGGER SYNC CLOUD
+    if (syncService != null) {
+      await syncService!.syncSingleMissionWithSubTasks(missionId, userId);
+      final updatedUser = await userRepository.getUserById(userId);
+      if (updatedUser != null) {
+        await syncService!.pushUserToCloud(updatedUser);
+      }
+    }
 
     final updatedUser = await userRepository.getUserById(userId);
     final playerLevel = updatedUser?.livello ?? 1;
@@ -212,7 +233,12 @@ class MissionService {
     if (mission.userId != userId) throw Exception('Non autorizzato');
     if (mission.completed) throw Exception('Missione già completata');
 
+    final now = DateTime.now().millisecondsSinceEpoch;
+
     await missionRepository.updateSubTask(subTask.copyWith(done: done));
+
+    final updatedMission = mission.copyWith(updatedAt: now);
+    await missionRepository.updateMission(updatedMission);
 
     final allDone = await missionRepository.isMissionFullyCompleted(subTask.missionId);
 
@@ -220,6 +246,10 @@ class MissionService {
       final currentMission = await missionRepository.getMissionById(subTask.missionId);
       if (currentMission != null && !currentMission.completed) {
         await completeMission(currentMission, userId);
+      }
+    } else {
+      if (syncService != null) {
+        await syncService!.syncSingleMissionWithSubTasks(subTask.missionId, userId);
       }
     }
   }
@@ -238,11 +268,18 @@ class MissionService {
     }
 
     await missionRepository.deleteMission(mission);
+
+    if (mission.id != null && syncService != null) {
+      await syncService!.deleteMissionOnCloud(mission.id!);
+    }
   }
 
   /// Ripristina missione eliminata
   Future<void> restoreMission(Mission mission, List<SubTask> subTasks) async {
     await missionRepository.restoreMission(mission, subTasks);
+    if (mission.id != null && syncService != null) {
+      await syncService!.syncSingleMissionWithSubTasks(mission.id!, mission.userId);
+    }
   }
 
   /// Reset missione
@@ -255,6 +292,8 @@ class MissionService {
 
     if (mission.userId != userId) throw Exception('Non autorizzato');
 
+    final now = DateTime.now().millisecondsSinceEpoch;
+
     final subtasks = await missionRepository.getSubTasksByMissionId(missionId);
     for (final subtask in subtasks) {
       if (subtask.done) {
@@ -262,8 +301,11 @@ class MissionService {
       }
     }
 
-    if (mission.completed) {
-      await missionRepository.updateMission(mission.copyWith(completed: false));
+    final resetMissionObj = mission.copyWith(completed: false, updatedAt: now);
+    await missionRepository.updateMission(resetMissionObj);
+
+    if (syncService != null) {
+      await syncService!.syncSingleMissionWithSubTasks(missionId, userId);
     }
   }
 }

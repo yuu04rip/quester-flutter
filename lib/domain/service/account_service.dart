@@ -1,16 +1,20 @@
 // lib/domain/service/account_service.dart
 
+import 'package:flutter/foundation.dart';
 import '../../data/session/session_manager.dart';
 import '../../data/models/user.dart';
 import '/repository/user_repository.dart';
+import 'sync_service.dart';
 
 class AccountService {
   final SessionManager sessionManager;
   final UserRepository userRepository;
+  final SyncService? syncService;
 
   AccountService({
     required this.sessionManager,
     required this.userRepository,
+    this.syncService,
   });
 
   /// Recupera l'utente attualmente attivo dalla sessione
@@ -20,7 +24,7 @@ class AccountService {
     return userRepository.getUserById(userId);
   }
 
-  /// Aggiorna lo username dell'utente loggato
+  /// Aggiorna lo username dell'utente loggato e lo sincronizza
   Future<void> updateUsername(String newUsername) async {
     final userId = await sessionManager.loggedUserId();
     if (userId == null) {
@@ -31,7 +35,14 @@ class AccountService {
       throw Exception('Username vuoto');
     }
 
-    await userRepository.updateUsername(userId, newUsername.trim());
+    final trimmedName = newUsername.trim();
+    await userRepository.updateUsername(userId, trimmedName);
+
+    // Sync immediato sul cloud
+    final updatedUser = await userRepository.getUserById(userId);
+    if (updatedUser != null && syncService != null) {
+      await syncService!.pushUserToCloud(updatedUser);
+    }
   }
 
   /// Elimina l'account dell'utente corrente e svuota la sessione
@@ -41,7 +52,6 @@ class AccountService {
       throw Exception('Nessun utente autenticato');
     }
 
-    // Utilizziamo il metodo mirato per eliminare solo il singolo account e i suoi dati
     await userRepository.deleteAccount(userId);
     await sessionManager.clearSession();
   }

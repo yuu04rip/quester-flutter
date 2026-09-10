@@ -9,7 +9,7 @@ import '../dao/user_dao.dart';
 
 class AppDatabase {
   static const String dbName = 'quester_db';
-  static const int dbVersion = 2; // <-- Aggiornato a 2 per la migrazione
+  static const int dbVersion = 3; // Aggiornato a 3 per Sync 2.0 (updatedAt)
 
   final Database db;
   late final UserDao userDao;

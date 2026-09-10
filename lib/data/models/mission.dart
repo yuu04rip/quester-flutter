@@ -1,5 +1,3 @@
-// lib/models/mission.dart
-
 enum VerificationLevel {
   none,
   auto,
@@ -20,7 +18,8 @@ class Mission {
   final int createdAt;
   final int? completedAt;
   final String verificationLevel;
-  final bool isPinned; // <-- Aggiunto campo isPinned
+  final bool isPinned;
+  final int updatedAt; // Timestamp per la sincronizzazione
 
   Mission({
     this.id,
@@ -36,10 +35,11 @@ class Mission {
     int? createdAt,
     this.completedAt,
     this.verificationLevel = 'AUTO',
-    this.isPinned = false, // <-- Default a false
-  }) : createdAt = createdAt ?? DateTime.now().millisecondsSinceEpoch;
+    this.isPinned = false,
+    int? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now().millisecondsSinceEpoch,
+        updatedAt = updatedAt ?? DateTime.now().millisecondsSinceEpoch;
 
-  // Conversione da/verso Map per il database
   Map<String, dynamic> toMap() => {
     if (id != null && id != 0) 'id': id,
     'userId': userId,
@@ -54,27 +54,46 @@ class Mission {
     'createdAt': createdAt,
     'completedAt': completedAt,
     'verificationLevel': verificationLevel,
-    'isPinned': isPinned ? 1 : 0, // <-- Mappato nel DB come intero
+    'isPinned': isPinned ? 1 : 0,
+    'updatedAt': updatedAt,
   };
 
-  factory Mission.fromMap(Map<String, dynamic> map) => Mission(
-    id: map['id'],
-    userId: map['userId'] ?? 0,
-    title: map['title'] ?? '',
-    description: map['description'] ?? '',
-    type: map['type'] ?? '',
-    dueDate: map['dueDate'],
-    xpReward: map['xpReward'] ?? 0,
-    completed: (map['completed'] ?? 0) == 1,
-    xpAwarded: (map['xpAwarded'] ?? 0) == 1,
-    redeemed: (map['redeemed'] ?? 0) == 1,
-    createdAt: map['createdAt'] ?? 0,
-    completedAt: map['completedAt'],
-    verificationLevel: map['verificationLevel'] ?? 'AUTO',
-    isPinned: (map['isPinned'] ?? 0) == 1, // <-- Letto dal DB
-  );
+  factory Mission.fromMap(Map<String, dynamic> map) {
+    int parseInt(dynamic val, [int fallback = 0]) {
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? fallback;
+      return fallback;
+    }
 
-  // Copy per aggiornamenti
+    bool parseBool(dynamic val) {
+      if (val is bool) return val;
+      if (val is int) return val == 1;
+      if (val is String) return val == '1' || val.toLowerCase() == 'true';
+      return false;
+    }
+
+    return Mission(
+      id: map['id'] != null ? parseInt(map['id']) : null,
+      userId: parseInt(map['userId'] ?? map['user_id']),
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      type: map['type'] ?? '',
+      dueDate: map['dueDate'] ?? map['due_date'],
+      xpReward: parseInt(map['xpReward'] ?? map['xp_reward']),
+      completed: parseBool(map['completed']),
+      xpAwarded: parseBool(map['xpAwarded'] ?? map['xp_awarded']),
+      redeemed: parseBool(map['redeemed']),
+      createdAt: parseInt(map['createdAt'] ?? map['created_at'], DateTime.now().millisecondsSinceEpoch),
+      completedAt: map['completedAt'] != null || map['completed_at'] != null
+          ? parseInt(map['completedAt'] ?? map['completed_at'])
+          : null,
+      verificationLevel: map['verificationLevel'] ?? map['verification_level'] ?? 'AUTO',
+      isPinned: parseBool(map['isPinned'] ?? map['is_pinned']),
+      updatedAt: parseInt(map['updatedAt'] ?? map['updated_at'], DateTime.now().millisecondsSinceEpoch),
+    );
+  }
+
   Mission copyWith({
     int? id,
     int? userId,
@@ -89,7 +108,8 @@ class Mission {
     int? createdAt,
     int? completedAt,
     String? verificationLevel,
-    bool? isPinned, // <-- Aggiunto nel copyWith
+    bool? isPinned,
+    int? updatedAt,
   }) {
     return Mission(
       id: id ?? this.id,
@@ -106,6 +126,7 @@ class Mission {
       completedAt: completedAt ?? this.completedAt,
       verificationLevel: verificationLevel ?? this.verificationLevel,
       isPinned: isPinned ?? this.isPinned,
+      updatedAt: updatedAt ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 }

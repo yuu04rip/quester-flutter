@@ -2,6 +2,7 @@
 
 import 'dart:io' show Platform;
 
+import 'package:Quester/ui/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -18,38 +19,39 @@ import 'domain/service/currency_service.dart';
 import 'domain/service/mission_service.dart';
 import 'domain/service/reminder_service.dart';
 import 'domain/service/shop_service.dart';
+import 'domain/service/sync_service.dart';
 import 'ui/screens/auth_screen.dart';
 import 'ui/screens/nav_bar.dart';
 import 'ui/theme/app_theme.dart';
 
-// Plugin per le notifiche locali
+// Plugin for local notifications
 final FlutterLocalNotificationsPlugin notificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inizializza il database FFI solo su desktop
+  // Initialize FFI database only on desktop platforms
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
 
-  // Inizializza le notifiche e richiedi i permessi
+  // Initialize notifications and request permissions
   await _initNotifications();
 
-  // Inizializza il database
+  // Initialize database
   final databaseProvider = DatabaseProvider.instance;
   final appDatabase = await databaseProvider.getDatabase();
 
-  // Inizializza i DAO
+  // Initialize DAOs
   final userDao = appDatabase.userDao;
   final missionDao = appDatabase.missionDao;
   final subTaskDao = appDatabase.subTaskDao;
   final shopDao = appDatabase.shopDao;
   final ownedCosmeticDao = appDatabase.ownedCosmeticDao;
 
-  // Inizializza i repository
+  // Initialize repositories
   final authRepository = AuthRepository(userDao);
   final missionRepository = MissionRepository(
     missionDao: missionDao,
@@ -58,28 +60,37 @@ Future<void> main() async {
   final userRepository = UserRepository(
     userDao: userDao,
     ownedCosmeticDao: ownedCosmeticDao,
+    missionDao: missionDao,
   );
 
-  // Inizializza i service
+  // Initialize services
   final sessionManager = SessionManager();
   final themePreferences = ThemePreferences();
   final currencyService = CurrencyService(
     userRepository: userRepository,
     sessionManager: sessionManager,
   );
-  final authService = AuthService(
-    sessionManager: sessionManager,
-    authRepository: authRepository,
+  final reminderService = ReminderService(notificationsPlugin);
+  await reminderService.init();
+
+  final syncService = SyncService(
     userRepository: userRepository,
+    missionRepository: missionRepository,
   );
+
   final shopService = ShopService(
     userRepository: userRepository,
     shopDao: shopDao,
     ownedDao: ownedCosmeticDao,
     sessionManager: sessionManager,
   );
-  final reminderService = ReminderService(notificationsPlugin);
-  await reminderService.init();
+
+  final authService = AuthService(
+    sessionManager: sessionManager,
+    authRepository: authRepository,
+    userRepository: userRepository,
+    syncService: syncService,
+  );
 
   final missionService = MissionService(
     missionRepository: missionRepository,
@@ -87,12 +98,13 @@ Future<void> main() async {
     currencyService: currencyService,
     sessionManager: sessionManager,
     reminderService: reminderService,
+    syncService: syncService,
   );
 
-  // Inizializza lo shop con gli oggetti predefiniti solo se vuoto
+  // Initialize shop with complete forced refresh
   await _initShop(shopDao);
 
-  // Carica il tema salvato e impostalo sul Notifier
+  // Load saved theme and set it on Notifier
   final savedTheme = await themePreferences.getTheme();
   ThemeManager.setTheme(savedTheme);
 
@@ -110,7 +122,7 @@ Future<void> main() async {
   );
 }
 
-/// Inizializza le notifiche locali e richiede i permessi di sistema (Android 13+ / iOS)
+/// Initialize local notifications and request system permissions (Android 13+ / iOS)
 Future<void> _initNotifications() async {
   const AndroidInitializationSettings androidSettings =
   AndroidInitializationSettings('@mipmap/launcher_icon');
@@ -125,7 +137,7 @@ Future<void> _initNotifications() async {
 
   await notificationsPlugin.initialize(initSettings);
 
-  // Richiesta esplicita dei permessi di notifica (fondamentale per Android 13+)
+  // Explicit permission request for notifications (essential for Android 13+)
   if (Platform.isAndroid) {
     final androidImplementation =
     notificationsPlugin.resolvePlatformSpecificImplementation<
@@ -143,9 +155,9 @@ Future<void> _initNotifications() async {
   }
 }
 
-/// Inizializza o aggiorna gli oggetti dello shop forzando i dati corretti
+/// Initialize or update shop items forcing correct data and clearing old artifacts
 Future<void> _initShop(dynamic shopDao) async {
-  // Migrazione ID legacy -> ID canonici
+  // Legacy ID migration -> Canonical IDs
   await shopDao.db.delete(
     'shop_items',
     where: 'itemId = ?',
@@ -163,6 +175,9 @@ Future<void> _initShop(dynamic shopDao) async {
     where: 'itemId = ?',
     whereArgs: ['elmo_cavaliere'],
   );
+
+  // Pulisci completamente la tabella shop_items per assicurarsi che non rimangano filtri o disallineamenti
+  await shopDao.deleteAllItems();
 
   await shopDao.upsertItems([
     ShopItem(
@@ -259,7 +274,7 @@ Future<void> _initShop(dynamic shopDao) async {
   ]);
 }
 
-/// Widget per gestire lo sfondo dinamico Arcade (immagine pixelata)
+/// Widget to manage the dynamic Arcade background (pixelated image)
 class ArcadeBackground extends StatelessWidget {
   final Widget child;
 
@@ -292,7 +307,7 @@ class ArcadeBackground extends StatelessWidget {
   }
 }
 
-/// Widget principale dell'app
+/// Main app widget
 class QuesterApp extends StatefulWidget {
   final AuthService authService;
   final MissionService missionService;
@@ -322,7 +337,7 @@ class QuesterApp extends StatefulWidget {
 class _QuesterAppState extends State<QuesterApp> {
   bool _isLoggedIn = false;
   bool _isLoading = true;
-  int _currentIndex = 1; // Mantiene lo stato del tab attivo anche al cambio tema
+  int _currentIndex = 1; // Maintains active tab state on theme change
 
   @override
   void initState() {
@@ -330,16 +345,21 @@ class _QuesterAppState extends State<QuesterApp> {
     _checkSession();
   }
 
-  /// Verifica se l'utente è già loggato e programma la notifica giornaliera
+  /// Verify if user is logged in and handle synchronization
   Future<void> _checkSession() async {
     final loggedIn = await widget.sessionManager.isLoggedIn();
 
     if (loggedIn) {
       try {
-        // Usiamo il metodo corretto 'loggedUserId()' definito nel SessionManager
         final userId = await widget.sessionManager.loggedUserId();
-
         if (userId != null) {
+          final syncService = SyncService(
+            userRepository: widget.userRepository,
+            missionRepository: widget.missionRepository,
+          );
+
+          await syncService.performFullSync(userId);
+
           final missions = await widget.missionRepository.getAllMissionsForUser(userId);
           final activeCount = missions.where((m) => !m.completed).length;
 
@@ -348,7 +368,7 @@ class _QuesterAppState extends State<QuesterApp> {
           );
         }
       } catch (e) {
-        // Gestione silenziosa in caso di problemi di lettura DB all'avvio
+        debugPrint("ERROR: Auto-sync during checkSession failed -> $e");
       }
     }
 
@@ -362,11 +382,82 @@ class _QuesterAppState extends State<QuesterApp> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return MaterialApp(
-        home: Scaffold(body: const Center(child: CircularProgressIndicator())),
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: FantasyBackground,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icona connessione
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: FantasyGold.withOpacity(0.08),
+                    border: Border.all(
+                      color: FantasyGold.withOpacity(0.25),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.cloud_sync_rounded,
+                    size: 45,
+                    color: FantasyGold,
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                const Text(
+                  'Connessione in corso',
+                  style: TextStyle(
+                    color: FantasyText,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Text(
+                  'Connessione al database...',
+                  style: TextStyle(
+                    color: FantasyTextSecondary.withOpacity(0.75),
+                    fontSize: 15,
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: FantasyGold,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Text(
+                  'Attendi qualche istante',
+                  style: TextStyle(
+                    color: FantasyTextSecondary.withOpacity(0.5),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
-    // Ascolta i cambiamenti di ThemeManager in tempo reale
+
+
     return ValueListenableBuilder<AppTheme>(
       valueListenable: ThemeManager.themeNotifier,
       builder: (context, currentTheme, child) {
@@ -377,7 +468,6 @@ class _QuesterAppState extends State<QuesterApp> {
             themeType: currentTheme,
             darkTheme: true,
           ),
-          // Avvolgiamo la home con ArcadeBackground per mostrare l'immagine in modalità Arcade
           home: ArcadeBackground(
             child: _isLoggedIn
                 ? NavBar(
@@ -395,10 +485,9 @@ class _QuesterAppState extends State<QuesterApp> {
               onLogout: () {
                 setState(() => _isLoggedIn = false);
               },
-              currentIndex: _currentIndex, // Passiamo l'indice persistente
+              currentIndex: _currentIndex,
               onTabChanged: (index) {
-                setState(() =>
-                _currentIndex = index); // Aggiorna l'indice quando navighi
+                setState(() => _currentIndex = index);
               },
             )
                 : AuthScreen(

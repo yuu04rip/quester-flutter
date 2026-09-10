@@ -3,8 +3,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:Quester/data/dao/user_dao.dart';
 import 'package:Quester/data/dao/owned_cosmetic_dao.dart';
+import 'package:Quester/data/dao/mission_dao.dart';
 import 'package:Quester/data/models/user.dart';
 import 'package:Quester/data/models/owned_cosmetic.dart';
+import 'package:Quester/data/models/mission.dart';
 
 /// Enum per i cosmetici equipaggiabili
 enum HatType { none, mago, cavaliere, scifi }
@@ -30,16 +32,80 @@ class UserRepository extends ChangeNotifier {
   static const int xpBase = 100;
   static const int xpIncrement = 50;
   static const int maxLevel = 50;
-  static const int absoluteMaxXp = 63750; // Valore massimo assoluto fisso
+  static const int absoluteMaxXp = 63750;
 
   final UserDao userDao;
   final OwnedCosmeticDao? ownedCosmeticDao;
+  final MissionDao? missionDao;
 
-  UserRepository({required this.userDao, this.ownedCosmeticDao});
+  UserRepository({
+    required this.userDao,
+    this.ownedCosmeticDao,
+    this.missionDao,
+  });
 
   /// Notifica i listener del cambiamento dei dati
   void refresh() {
     notifyListeners();
+  }
+
+  /// Helper per il parsing sicuro degli interi da JSON (gestisce String e num)
+  int _parseInt(dynamic val, [int fallback = 0]) {
+    if (val == null) return fallback;
+    if (val is int) return val;
+    if (val is double) return val.toInt();
+    if (val is String) return int.tryParse(val) ?? fallback;
+    return fallback;
+  }
+
+  /// Salva o aggiorna un utente direttamente dai dati ricevuti dal Cloud (Ultimo aggiornamento vince)
+  Future<void> saveOrUpdateUserFromCloud(Map<String, dynamic> uMap) async {
+    final userId = _parseInt(uMap['id'] ?? uMap['user_id']);
+    final cloudTs = _parseInt(uMap['updated_at'] ?? uMap['updatedAt'], 0);
+    
+    final existing = await userDao.getUserById(userId);
+    
+    // Se l'utente locale è più recente del cloud, non sovrascrivere
+    if (existing != null && existing.updatedAt >= cloudTs) {
+      return;
+    }
+
+    final cloudUser = User.fromMap(uMap);
+
+    if (existing == null) {
+      await userDao.insertUser(cloudUser);
+    } else {
+      await userDao.updateUser(cloudUser);
+    }
+    notifyListeners();
+  }
+
+  /// Salva una missione e relativi subtasks scaricati dal Cloud (Ultimo aggiornamento vince)
+  Future<void> saveMissionFromCloud(Map<String, dynamic> mData) async {
+    if (missionDao == null) return;
+
+    final missionId = _parseInt(mData['id']);
+    final cloudTs = _parseInt(mData['updated_at'] ?? mData['updatedAt'], 0);
+
+    final existing = await missionDao!.getMissionById(missionId);
+    
+    // Se la missione locale è più recente del cloud, non sovrascrivere
+    if (existing != null && existing.updatedAt >= cloudTs) {
+      return;
+    }
+
+    final mission = Mission.fromMap(mData);
+    final missionMap = mission.toMap();
+
+    // Mappa i subtask nella struttura attesa dai DAO locali se presenti
+    List subtasksData = mData['subtasks'] ?? [];
+    List<Map<String, dynamic>> formattedSubtasks = subtasksData.map((s) => {
+      'missionId': missionId,
+      'text': s['text'] ?? '',
+      'done': (s['done'] == true || s['done'] == 1 || s['done'] == '1') ? 1 : 0,
+    }).toList();
+
+    await missionDao!.insertMissionWithSubtasks(missionMap, formattedSubtasks);
   }
 
   /// Utente per ID con controllo di sicurezza automatico e self-healing
@@ -50,7 +116,6 @@ class UserRepository extends ChangeNotifier {
     final calculatedLevel = calculateLevelFromXp(user.xpTotale);
     final maxXp = getTotalXpRequiredForLevel(maxLevel);
 
-    // Self-healing: correzione se XP o livello sono incoerenti o superano i limiti
     if (user.xpTotale > maxXp || user.livello != calculatedLevel) {
       final correctedUser = user.copyWith(
         xpTotale: user.xpTotale.clamp(0, maxXp),
@@ -58,7 +123,7 @@ class UserRepository extends ChangeNotifier {
       );
       await userDao.updateUser(correctedUser);
       notifyListeners();
-      
+
       if (calculatedLevel >= maxLevel) {
         await unlockCosmetic(userId, 'reward_corona');
         await unlockCosmetic(userId, 'reward_tema_regale');
@@ -70,7 +135,7 @@ class UserRepository extends ChangeNotifier {
       await unlockCosmetic(userId, 'reward_corona');
       await unlockCosmetic(userId, 'reward_tema_regale');
     }
-    
+
     return user;
   }
 
@@ -93,10 +158,10 @@ class UserRepository extends ChangeNotifier {
     return totalXp >= absoluteMaxXp ? absoluteMaxXp : totalXp;
   }
 
-  /// Calcola livello da XP totali (Bloccato rigorosamente a maxLevel = 50)
+  /// Calcola livello da XP totali
   int calculateLevelFromXp(int totalXp) {
     final cappedXp = _capXpAtMaxLevel(totalXp);
-    
+
     if (cappedXp >= absoluteMaxXp) return maxLevel;
 
     var level = 1;
@@ -122,18 +187,18 @@ class UserRepository extends ChangeNotifier {
     return (totalXp - currentLevelStart).clamp(0, totalXp);
   }
 
-  /// Progresso XP (0.0 - 1.0) -> Al livello massimo restituisce sempre 1.0 (barra piena)
+  /// Progresso XP (0.0 - 1.0)
   double getXpProgress(int totalXp, [int? level]) {
     final currentLevel = level ?? calculateLevelFromXp(totalXp);
     if (currentLevel >= maxLevel) {
       return 1.0;
     }
-    
+
     final xpInLevel = getXpInCurrentLevel(totalXp, currentLevel);
     final currentLevelStart = getTotalXpRequiredForLevel(currentLevel);
     final nextLevelStart = getTotalXpRequiredForLevel(currentLevel + 1);
     final xpNeededForLevel = nextLevelStart - currentLevelStart;
-    
+
     if (xpNeededForLevel <= 0) return 1.0;
     return (xpInLevel / xpNeededForLevel).clamp(0.0, 1.0);
   }
@@ -148,7 +213,7 @@ class UserRepository extends ChangeNotifier {
     return 0;
   }
 
-  /// Aggiungi XP con sblocco automatico al livello 50
+  /// Aggiungi XP
   Future<void> addXp(int userId, int xpGained) async {
     if (xpGained <= 0) return;
 
@@ -172,7 +237,6 @@ class UserRepository extends ChangeNotifier {
     final newLevel = calculateLevelFromXp(newXpTotal);
 
     var totalCoinsGained = 0;
-    // Ciclo per accumulare monete di ogni livello superato
     for (var l = oldLevel + 1; l <= newLevel; l++) {
       totalCoinsGained += getLevelUpCoins(l);
     }
@@ -249,7 +313,7 @@ class UserRepository extends ChangeNotifier {
     );
   }
 
-  /// Cosmetici posseduti (con normalizzazione ed eliminazione duplicati)
+  /// Cosmetici posseduti
   Future<List<OwnedCosmetic>> getOwnedCosmetics(int userId) async {
     final rawOwned = await ownedCosmeticDao?.getOwnedByUser(userId) ?? [];
 
@@ -299,7 +363,6 @@ class UserRepository extends ChangeNotifier {
     );
   }
 
-  /// Parser per Hat
   HatType _parseHat(String? value) {
     if (value == null || value.isEmpty || value.contains('NONE')) {
       return HatType.none;
@@ -310,7 +373,6 @@ class UserRepository extends ChangeNotifier {
     );
   }
 
-  /// Parser per Weapon
   WeaponType _parseWeapon(String? value) {
     if (value == null || value.isEmpty || value.contains('NONE')) {
       return WeaponType.none;
@@ -321,7 +383,6 @@ class UserRepository extends ChangeNotifier {
     );
   }
 
-  /// Parser per Frame
   FrameType _parseFrame(String? value) {
     if (value == null || value.isEmpty || value.contains('NONE')) {
       return FrameType.basic;

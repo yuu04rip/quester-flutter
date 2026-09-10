@@ -47,11 +47,12 @@ class DatabaseProvider {
         coins INTEGER NOT NULL DEFAULT 0,
         equippedHat TEXT NOT NULL DEFAULT 'NONE',
         equippedWeapon TEXT NOT NULL DEFAULT 'NONE',
-        equippedFrame TEXT NOT NULL DEFAULT 'NONE'
+        equippedFrame TEXT NOT NULL DEFAULT 'NONE',
+        updatedAt INTEGER DEFAULT 0
       )
     ''');
 
-    // Tabella missions (con isPinned aggiunto)
+    // Tabella missions
     await db.execute('''
       CREATE TABLE missions (
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -68,6 +69,7 @@ class DatabaseProvider {
         completedAt INTEGER,
         verificationLevel TEXT NOT NULL DEFAULT 'AUTO',
         isPinned INTEGER NOT NULL DEFAULT 0,
+        updatedAt INTEGER DEFAULT 0,
         FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
@@ -123,10 +125,16 @@ class DatabaseProvider {
     ''');
   }
 
-  /// Migrazione professionale: se l'utente arriva dalla versione 1, aggiunge la colonna senza cancellare i dati
+  /// Migrazione professionale
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE missions ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0;');
+      // Già gestita nella versione precedente ma aggiungiamo per sicurezza se mancante
+      try { await db.execute('ALTER TABLE missions ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0;'); } catch(_) {}
+    }
+    if (oldVersion < 3) {
+      // Aggiunta updatedAt per Sync 2.0
+      await db.execute('ALTER TABLE users ADD COLUMN updatedAt INTEGER DEFAULT 0;');
+      await db.execute('ALTER TABLE missions ADD COLUMN updatedAt INTEGER DEFAULT 0;');
     }
   }
 }

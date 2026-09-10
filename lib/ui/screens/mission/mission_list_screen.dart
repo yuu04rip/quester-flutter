@@ -140,7 +140,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
                   final success = await widget.missionRepository.setMissionPinned(missionId, userId, newPinState);
 
                   if (!success && newPinState) {
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Puoi pinnare al massimo 3 missioni contemporaneamente.'),
@@ -157,7 +157,7 @@ class _MissionListScreenState extends State<MissionListScreen> {
                   try {
                     await widget.missionService.toggleSubTask(subTask, done);
                   } catch (e) {
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
                       );

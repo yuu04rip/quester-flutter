@@ -1,8 +1,8 @@
 // lib/data/repository/auth_repository.dart
 
-import '../data/dao/user_dao.dart';
-import '../data/models/user.dart';
-import '../../domain/security/password_hasher.dart';
+import 'package:Quester/data/dao/user_dao.dart';
+import 'package:Quester/data/models/user.dart';
+import 'package:Quester/domain/security/password_hasher.dart';
 
 /// Risultato dell'autenticazione
 sealed class AuthResult {}
@@ -22,7 +22,7 @@ class AuthRepository {
 
   AuthRepository(this.userDao);
 
-  /// Registrazione
+  /// Registrazione standard locale
   Future<AuthResult> register(String username, String? email, String password) async {
     final cleanUsername = username.trim().toLowerCase();
     final cleanEmail = email?.trim().toLowerCase();
@@ -48,6 +48,44 @@ class AuthRepository {
 
     final created = await userDao.getUserByUsername(cleanUsername);
     if (created == null) return AuthError('Errore creazione utente');
+
+    return AuthSuccess(created);
+  }
+
+  /// Registrazione forzata con un ID specifico proveniente dal Cloud (utilizzata post-login/registrazione cloud)
+  Future<AuthResult> registerWithId({
+    required int id,
+    required String username,
+    String? email,
+    required String passwordHash,
+  }) async {
+    final cleanUsername = username.trim().toLowerCase();
+    final cleanEmail = email?.trim().toLowerCase();
+    final finalEmail = (cleanEmail == null || cleanEmail.isEmpty) ? null : cleanEmail;
+
+    // Controlliamo se esiste già un utente con questo ID in locale
+    final existingUser = await userDao.getUserById(id);
+    if (existingUser != null) {
+      return AuthSuccess(existingUser);
+    }
+
+    // Altrimenti inseriamo l'utente mantenendo l'ID esatto del cloud
+    final user = User(
+      id: id,
+      username: cleanUsername,
+      email: finalEmail,
+      passwordHash: passwordHash.startsWith('\$2') ? passwordHash : PasswordHasher.hash(passwordHash),
+      xpTotale: 0,
+      livello: 1,
+      coins: 0,
+      equippedHat: 'NONE',
+      equippedWeapon: 'NONE',
+      equippedFrame: 'NONE',
+    );
+
+    await userDao.insertUser(user);
+    final created = await userDao.getUserById(id);
+    if (created == null) return AuthError('Errore sincronizzazione utente locale');
 
     return AuthSuccess(created);
   }

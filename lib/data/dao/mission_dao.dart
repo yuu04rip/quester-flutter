@@ -10,11 +10,55 @@ class MissionDao {
 
   MissionDao(this.db);
 
+  // Inserisci missione e relativi subtasks in un'unica transazione sicura
+  Future<void> insertMissionWithSubtasks(Map<String, dynamic> missionMap, List<Map<String, dynamic>> subtasksList) async {
+    // Se db è un Database (e non Transaction), usiamo transaction per l'atomicità
+    if (db is Database) {
+      await (db as Database).transaction((txn) async {
+        await txn.insert(
+          'missions',
+          missionMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        for (var subtaskMap in subtasksList) {
+          await txn.insert(
+            'subtasks',
+            subtaskMap,
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      });
+    } else {
+      // Se è già dentro una transazione
+      await db.insert(
+        'missions',
+        missionMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      for (var subtaskMap in subtasksList) {
+        await db.insert(
+          'subtasks',
+          subtaskMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    }
+  }
+
   // Insert missione
   Future<int> insertMission(Mission mission) async {
     return await db.insert(
       'missions',
       mission.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Inserisci subtask singolo
+  Future<int> insertSubtaskMap(Map<String, dynamic> subtaskMap) async {
+    return await db.insert(
+      'subtasks',
+      subtaskMap,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -25,7 +69,7 @@ class MissionDao {
       'missions',
       where: 'userId = ?',
       whereArgs: [userId],
-      orderBy: 'isPinned DESC, id DESC', // <-- Opzionale: mostra prima quelle pinnate
+      orderBy: 'isPinned DESC, id DESC',
     );
     return result.map((map) => Mission.fromMap(map)).toList();
   }
@@ -95,7 +139,7 @@ class MissionDao {
     if (pin) {
       final currentPinnedCount = await countPinnedMissionsForUser(userId);
       if (currentPinnedCount >= 3) {
-        return false; // Raggiunto il limite massimo di 3 pin
+        return false;
       }
     }
 
