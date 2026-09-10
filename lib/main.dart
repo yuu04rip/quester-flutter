@@ -105,6 +105,7 @@ Future<void> main() async {
       missionRepository: missionRepository,
       userRepository: userRepository,
       shopDao: shopDao,
+      reminderService: reminderService,
     ),
   );
 }
@@ -300,6 +301,7 @@ class QuesterApp extends StatefulWidget {
   final MissionRepository missionRepository;
   final UserRepository userRepository;
   final dynamic shopDao;
+  final ReminderService reminderService;
 
   const QuesterApp({
     super.key,
@@ -310,6 +312,7 @@ class QuesterApp extends StatefulWidget {
     required this.missionRepository,
     required this.userRepository,
     required this.shopDao,
+    required this.reminderService,
   });
 
   @override
@@ -327,9 +330,28 @@ class _QuesterAppState extends State<QuesterApp> {
     _checkSession();
   }
 
-  /// Verifica se l'utente è già loggato
+  /// Verifica se l'utente è già loggato e programma la notifica giornaliera
   Future<void> _checkSession() async {
     final loggedIn = await widget.sessionManager.isLoggedIn();
+
+    if (loggedIn) {
+      try {
+        // Usiamo il metodo corretto 'loggedUserId()' definito nel SessionManager
+        final userId = await widget.sessionManager.loggedUserId();
+
+        if (userId != null) {
+          final missions = await widget.missionRepository.getAllMissionsForUser(userId);
+          final activeCount = missions.where((m) => !m.completed).length;
+
+          await widget.reminderService.scheduleDailySummaryReminder(
+            activeMissionsCount: activeCount,
+          );
+        }
+      } catch (e) {
+        // Gestione silenziosa in caso di problemi di lettura DB all'avvio
+      }
+    }
+
     setState(() {
       _isLoggedIn = loggedIn;
       _isLoading = false;
@@ -375,7 +397,8 @@ class _QuesterAppState extends State<QuesterApp> {
               },
               currentIndex: _currentIndex, // Passiamo l'indice persistente
               onTabChanged: (index) {
-                setState(() => _currentIndex = index); // Aggiorna l'indice quando navighi
+                setState(() =>
+                _currentIndex = index); // Aggiorna l'indice quando navighi
               },
             )
                 : AuthScreen(
